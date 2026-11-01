@@ -1,0 +1,1586 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ứng dụng 2: Dự đoán trang web truy cập tiếp theo trên dữ liệu Wikispeedia</title><style>:root{color-scheme:light}*{box-sizing:border-box}body{margin:0;background:#f3f5f7;color:#182433;font-family:Segoe UI,Arial,sans-serif;line-height:1.75;font-size:16px}
+main{max-width:1080px;margin:28px auto;padding:42px 56px;background:white;border:1px solid #e0e6eb;border-radius:12px}
+h1{font-size:30px;line-height:1.3;color:#143f5c;margin:0 0 24px}h2{font-size:23px;color:#163f5b;margin:36px 0 14px;border-bottom:1px solid #dce5ec;padding-bottom:8px}
+h3{font-size:18px;color:#254f68;margin:28px 0 10px}p{margin:12px 0}a{color:#126494;text-underline-offset:3px;overflow-wrap:anywhere}
+table{display:block;width:100%;overflow:auto;border-collapse:collapse;margin:18px 0;font-size:14px;line-height:1.6}
+th,td{border:1px solid #d8e1e8;text-align:left;vertical-align:top;padding:10px 12px;min-width:90px}th{background:#edf4f8;color:#173d58}tr:nth-child(even){background:#f8fafb}
+code{font-family:Consolas,monospace;background:#eef2f5;border-radius:3px;padding:2px 5px;font-size:.9em;overflow-wrap:anywhere}
+pre{padding:18px;background:#f0f4f7;border-left:3px solid #517c98;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}pre code{padding:0;background:none}
+blockquote{border-left:4px solid #dca658;background:#fff8e9;padding:12px 18px;margin:18px 0}blockquote p{margin:0}
+.math-display{border:1px solid #dbe6ed;background:#f7fafc;padding:14px 18px;margin:20px 0;overflow-x:auto}
+li{margin:6px 0}img{max-width:100%;height:auto;display:block;margin:12px auto}@media(max-width:760px){body{font-size:15px}main{margin:0;padding:24px 16px;border-radius:0;border:0}h1{font-size:25px}h2{font-size:21px}th,td{padding:8px}}
+@media print{body{background:white;font-size:10.5pt}main{border:0;margin:0;padding:0;max-width:none}}</style><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}],throwOnError:false})"></script></head><body><main><h1>Ứng dụng 2: Dự đoán trang web truy cập tiếp theo trên dữ liệu Wikispeedia</h1>
+<blockquote>
+<p><strong>Bản v2 (01/11/2026), đã duyệt và đã có kết quả thực nghiệm.</strong> Bản này sửa từ bản bàn giao theo các quyết định chốt ngày 01/11/2026: (1) tự cài đặt GSP và PrefixSpan bằng Python; (2) có đánh giá hữu ích trên tập test với baseline “trang phổ biến”; (3) đo chính chạy trên máy cục bộ, notebook giao kèm để chạy lại trên Kaggle. Danh sách thay đổi và lý do nằm trong <a href="Nhat-ky-sua-v2.html">nhật ký sửa</a>.</p>
+<p><strong>Cập nhật cùng ngày (lần sửa 2).</strong> Rà lại toàn bộ công thức sau khi đọc toàn văn hai paper thuật toán. Sửa công thức support để không gộp các đường đi trùng nhau. Bổ sung: định nghĩa ⊑, lý do làm tròn lên, số ứng viên của GSP gốc, bổ đề khớp sớm nhất kèm chứng minh, đủ các nhánh của ví dụ PrefixSpan, và công thức cho C(h), chia train/test, Coverage, Hit@k. Chi tiết ở mục 5 của nhật ký sửa.</p>
+<p><strong>Lần sửa 3 (01/11/2026): điền kết quả.</strong> Bản nội dung được duyệt; tập dữ liệu, code, bốn lớp kiểm tra tính đúng, phép đo và đánh giá trên tập test đã chạy trên máy cục bộ. Kết quả nằm ở các mục 2.7, 3.7, 4.8, 5.3, 5.9, 5.10 và 6.7. Code, dữ liệu đã chuẩn bị, kết quả thô và notebook Kaggle nằm trong thư mục <a href="thuc-nghiem/">thuc-nghiem</a>. Phần thiết kế không thay đổi so với bản đã duyệt.</p>
+</blockquote>
+<p>Tài liệu trình bày đầy đủ bài toán, dữ liệu, cách áp dụng GSP và PrefixSpan, cách sử dụng mẫu và thiết kế thực nghiệm. Nội dung được viết để đọc hiểu và dùng làm nguồn xây dựng bài trình bày.</p>
+<p>Wikispeedia đã được chọn làm dataset. Khảo sát cấu trúc dữ liệu đã hoàn thành. Những thống kê khảo sát được phân biệt với ví dụ minh họa và kết quả khai phá. Thiết kế được chốt và duyệt trước khi chuẩn bị dữ liệu và viết code; sau đó thực nghiệm chạy đúng theo thiết kế này, kết quả được điền vào các mục tương ứng.</p>
+<p>Quy ước đọc tài liệu: <strong>[Nguồn]</strong> là phát biểu có tài liệu gốc; <strong>[Khảo sát]</strong> là số liệu tự tính từ dữ liệu gốc trong bước khảo sát chọn dataset; <strong>[Minh họa]</strong> là ví dụ tự dựng để tính tay; <strong>[Thiết kế]</strong> là lựa chọn của bài, chưa phải phương pháp được công bố; <strong>[Kết quả]</strong> là số đo hoặc đầu ra của thực nghiệm do bài chạy trên máy cục bộ ngày 01/11/2026. Các nhãn được đặt ở những chỗ dễ nhầm, không lặp ở mọi câu.</p>
+<h2>1. Bài toán và ý nghĩa của ứng dụng</h2>
+<h3>1.1. Bài toán xuất phát từ hành vi điều hướng</h3>
+<p>Khi sử dụng một website, người dùng thường ghé nhiều trang theo một thứ tự. Trang đang xem và các trang đã ghé trước đó tạo thành lịch sử điều hướng. Thứ tự này mang thông tin mà một tập hợp trang không có thứ tự sẽ làm mất đi.</p>
+<p>Ví dụ, hai lịch sử <code>North America → United States</code> và <code>United States → North America</code> cùng chứa hai trang, nhưng trạng thái hiện tại và hướng di chuyển khác nhau. Ở lịch sử đầu, người dùng đang ở trang United States; ở lịch sử sau, họ đang ở North America. Một chức năng gợi ý cần phân biệt được hai tình huống này.</p>
+<p>Ứng dụng Next Website Page Prediction sử dụng lịch sử quan sát được để đưa ra các trang có thể được ghé ngay tiếp theo. Trong bài này, bằng chứng để xây dựng gợi ý được lấy từ các mẫu chuỗi phổ biến và những chuyển tiếp đã quan sát trong dữ liệu.</p>
+<h3>1.2. Đầu vào và đầu ra</h3>
+<p>Đầu vào là lịch sử có thứ tự:</p>
+<div class="math-display">\[
+H=\langle p_1,p_2,\ldots,p_t\rangle,
+\]</div>
+<p>trong đó mỗi \(p_i\) là một trang bài viết và \(p_t\) là trang được ghé gần nhất. Hệ thống chỉ sử dụng phần lịch sử đã quan sát, không nhìn trước lượt tiếp theo.</p>
+<p>Đầu ra dự kiến là tối đa ba trang ứng viên, được xếp hạng và kèm bằng chứng. Một gợi ý có thể cho biết nó được hỗ trợ bởi mẫu nào, ngữ cảnh nào trong lịch sử hiện tại và bao nhiêu chuyển tiếp trực tiếp đã được quan sát. Khi thiếu bằng chứng, hệ thống có thể không đưa ra gợi ý.</p>
+<p>Ví dụ minh họa:</p>
+<pre><code class="language-text">Lịch sử hiện tại: North America → United States
+Trang ứng viên:   President of the United States
+Bằng chứng:       mẫu phù hợp và các chuyển tiếp quan sát được
+</code></pre>
+<p>Đây là cách mô tả đầu vào–đầu ra, chưa phải một gợi ý được xác nhận từ kết quả chạy thuật toán.</p>
+<h3>1.3. Vì sao khai phá mẫu chuỗi phù hợp?</h3>
+<p>Khai phá mẫu chuỗi tìm những hành vi xuất hiện có thứ tự trong nhiều đường đi. Chẳng hạn, một mẫu có thể cho thấy các trang A, B và C thường được ghé theo thứ tự A trước B, B trước C. Mẫu được đánh giá theo số đường đi chứa nó, thay vì chỉ đếm một trang xuất hiện bao nhiêu lần.</p>
+<p>Điều này phù hợp với dữ liệu điều hướng vì thông tin cần phân tích chính là thứ tự các lượt ghé. Một thống kê trang phổ biến có thể cho biết trang nào được nhiều người ghé, còn mẫu chuỗi bổ sung thông tin về những trang thường xuất hiện trước hoặc sau nhau trong lịch sử.</p>
+<p>Tuy nhiên, mẫu phổ biến mới chỉ là bằng chứng về hành vi đã xảy ra. Để gợi ý lượt ngay tiếp theo, cần quy định cách chọn mẫu phù hợp với lịch sử hiện tại và kiểm tra các chuyển tiếp trực tiếp. Phần 4 giải thích bước này.</p>
+<h3>1.4. Vai trò của GSP và PrefixSpan</h3>
+<p>GSP và PrefixSpan cùng giải bài toán tìm mẫu chuỗi phổ biến. Chúng khác cách tìm kiếm, nhưng dưới cùng điều kiện khai phá đầy đủ phải tìm được cùng tập mẫu và support. Vì vậy, ứng dụng tạo ra một bối cảnh cụ thể để so sánh chi phí tính toán của hai cách tiếp cận.</p>
+<p>Câu hỏi thực nghiệm chính là: <strong>khi cùng khai phá một cơ sở dữ liệu chuỗi, GSP và PrefixSpan khác nhau thế nào về thời gian và bộ nhớ khi ngưỡng support giảm hoặc quy mô dữ liệu tăng?</strong></p>
+<p>Việc sử dụng mẫu để gợi ý trang là bước chung sau khai phá. Nếu hai nhánh cho cùng tập mẫu và sử dụng cùng quy tắc gợi ý, cùng lịch sử phải dẫn tới cùng kết quả gợi ý. Do đó, độ chính xác dự đoán không dùng để phân biệt hai thuật toán.</p>
+<p>Bài vẫn có một câu hỏi thứ hai, tách riêng với câu hỏi trên: <strong>chức năng gợi ý dựa trên mẫu có hữu ích hơn một cách gợi ý đơn giản không?</strong> Câu hỏi này được trả lời bằng tập test giữ lại và baseline “trang phổ biến” (mục 5.10). Nó đánh giá ứng dụng, không đánh giá thuật toán nào khai phá nhanh hơn.</p>
+<h3>1.5. Ý nghĩa ứng dụng và phạm vi</h3>
+<p>Một chức năng gợi ý dựa trên lịch sử có thể hỗ trợ người dùng khám phá các bài viết hoặc giúp người phân tích nhận diện những đường đi lặp lại. Đầu ra có bằng chứng còn giúp giải thích vì sao một trang được đề xuất.</p>
+<p>Trong phạm vi bài, giá trị này được kiểm tra ở mức offline: gợi ý có chứa đúng trang người chơi ghé tiếp theo trong tập test hay không, so với baseline. Kết quả offline không chứng minh chức năng giúp người dùng tìm thông tin nhanh hơn hoặc tăng tương tác; muốn khẳng định điều đó cần thử nghiệm với người dùng thật. Thí nghiệm GSP–PrefixSpan trả lời câu hỏi về chi phí khai phá trên các cấu hình đã đo.</p>
+<h2>2. Dữ liệu Wikispeedia và cách biểu diễn chuỗi</h2>
+<h3>2.1. Nguồn gốc và bối cảnh thu thập</h3>
+<p>Wikispeedia là trò chơi điều hướng trên một phiên bản Wikipedia thu gọn. Người chơi được giao một bài viết xuất phát và một bài viết đích, rồi di chuyển bằng các liên kết giữa bài viết. Dataset ghi lại các đường đi đó, gồm cả lượt chơi hoàn thành và lượt dừng trước khi tới đích. <a href="https://snap.stanford.edu/data/wikispeedia.html">Stanford SNAP — Wikispeedia navigation paths</a>. Trang SNAP liệt kê hai công trình nguồn của dataset: West &amp; Leskovec (2012) và West, Pineau &amp; Precup (2009); bài trích dẫn hai công trình này khi dùng dữ liệu (xem danh mục tham khảo).</p>
+<p>Đơn vị quan sát là một lượt chơi có một đường đi. Một người có thể chơi nhiều lượt. Mã IP đã băm trong tệp không phải định danh cá nhân được xác minh, nên không diễn giải số mã này thành số người dùng duy nhất.</p>
+<p>Bối cảnh trò chơi cần được giữ trong mọi kết luận: hành vi có mục tiêu tìm đích có thể khác hành vi đọc bài tự do. Dataset thích hợp để nghiên cứu điều hướng, nhưng không tự đại diện cho mọi loại sử dụng Wikipedia.</p>
+<h3>2.2. Các tệp và trường thông tin liên quan</h3>
+<table>
+<thead>
+<tr>
+<th>Tệp</th>
+<th>Nội dung</th>
+<th>Vai trò trong nghiên cứu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>paths_finished.tsv</code></td>
+<td>Đường đi hoàn thành; mã IP băm, thời điểm, thời lượng, path và rating</td>
+<td>Lấy chuỗi trang đã ghé.</td>
+</tr>
+<tr>
+<td><code>paths_unfinished.tsv</code></td>
+<td>Đường đi chưa hoàn thành; có thêm trang đích và loại kết thúc</td>
+<td>Lấy chuỗi trang đã ghé; mô tả timeout/restart.</td>
+</tr>
+<tr>
+<td><code>articles.tsv</code></td>
+<td>Danh mục tên bài viết</td>
+<td>Kiểm tra trang hợp lệ và xây ánh xạ tên–mã.</td>
+</tr>
+<tr>
+<td><code>categories.tsv</code></td>
+<td>Các danh mục phân cấp của bài viết</td>
+<td>Có thể hỗ trợ diễn giải; không dùng làm item trong phương án đã chọn.</td>
+</tr>
+<tr>
+<td><code>links.tsv</code></td>
+<td>Các liên kết giữa bài viết</td>
+<td>Thông tin phụ về cấu trúc website; không thay thế lịch sử truy cập.</td>
+</tr>
+</tbody>
+</table>
+<p>Trường <code>path</code> là đầu vào chính. Các trang được ngăn cách bằng dấu chấm phẩy; tên trang được mã hóa URL; ký hiệu <code>&lt;</code> biểu diễn thao tác quay lại.</p>
+<p>Timestamp mô tả thời điểm của lượt chơi và duration mô tả thời lượng chung. Tệp không cung cấp thời điểm riêng cho từng click, nên không suy ra thời gian dừng ở từng trang hoặc tự đặt điều kiện khoảng cách thời gian giữa mọi lượt ghé.</p>
+<p>Rating là đánh giá tùy chọn của người chơi, không phải nhãn đúng/sai của trang tiếp theo. Trường này không cần cho khai phá chuỗi, nên rating bị thiếu không phải lý do để loại một đường đi hợp lệ.</p>
+<p>Trang đích trong tệp chưa hoàn thành có thể là trang người chơi chưa hề ghé. Không nối nó vào cuối đường đi, vì việc đó sẽ tạo thêm hành vi không được quan sát. Thiết kế hiện tại cũng không sử dụng trang đích làm đầu vào gợi ý.</p>
+<h3>2.3. Quy mô gốc và kết quả khảo sát</h3>
+<table>
+<thead>
+<tr>
+<th>Chỉ số</th>
+<th style="text-align: right;">Số lượng</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Đường đi hoàn thành</td>
+<td style="text-align: right;">51.318</td>
+</tr>
+<tr>
+<td>Đường đi chưa hoàn thành</td>
+<td style="text-align: right;">24.875</td>
+</tr>
+<tr>
+<td>Tổng đường đi</td>
+<td style="text-align: right;">76.193</td>
+</tr>
+<tr>
+<td>Bài viết trong danh mục</td>
+<td style="text-align: right;">4.604</td>
+</tr>
+<tr>
+<td>Bài viết thực sự xuất hiện trong toàn bộ đường đi</td>
+<td style="text-align: right;">4.182</td>
+</tr>
+<tr>
+<td>Tổng lượt ghé sau khi diễn giải thao tác quay lại</td>
+<td style="text-align: right;">476.073</td>
+</tr>
+<tr>
+<td>Độ dài trung bình</td>
+<td style="text-align: right;">Khoảng 6,25 lượt</td>
+</tr>
+<tr>
+<td>Độ dài trung vị</td>
+<td style="text-align: right;">5 lượt</td>
+</tr>
+<tr>
+<td>Đường đi có ít nhất 4 lượt</td>
+<td style="text-align: right;">60.358, tương đương 79,22%</td>
+</tr>
+<tr>
+<td>Đường đi ghé ít nhất hai trang khác nhau</td>
+<td style="text-align: right;">70.968, tương đương 93,14%</td>
+</tr>
+<tr>
+<td>Đường đi chứa thao tác quay lại</td>
+<td style="text-align: right;">14.196, tương đương 18,63%</td>
+</tr>
+</tbody>
+</table>
+<p>Số đường đi và số bài trong danh mục được công bố bởi SNAP. Các thống kê về trang xuất hiện, độ dài, lượt ghé và thao tác quay lại được tính trực tiếp trong khảo sát của bài này. <a href="../Ban-giao-Wikispeedia-2026-11-01/03_Khao_sat/Khao-sat-va-de-xuat-chon-dataset.md">Báo cáo khảo sát</a>, <a href="../Ban-giao-Wikispeedia-2026-11-01/03_Khao_sat/structure_statistics.json">số liệu chi tiết</a>.</p>
+<p>4.604 là số bài viết của website thu gọn, còn 4.182 là số bài thật sự có trong các đường đi được ghi nhận. Hai con số có ý nghĩa khác nhau. Tương tự, độ dài trung vị 5 có nghĩa ít nhất một nửa đường đi dài không quá 5 lượt và ít nhất một nửa dài từ 5 lượt trở lên; không có nghĩa phần lớn đường đi dài đúng 5.</p>
+<p>Mười trang được ghé nhiều nhất chỉ chiếm khoảng 10,67% tổng lượt ghé. Số chuỗi chứa một trang có trung vị 36; có 465 trang xuất hiện trong không quá 10 chuỗi. Những thống kê này cho thấy hành vi phân tán ở mức trang cụ thể. Vì vậy, chọn support quá cao có thể chỉ giữ các mẫu liên quan đến một số ít trang phổ biến.</p>
+<h3>2.4. Vì sao dữ liệu này phù hợp với bài?</h3>
+<p>Thứ nhất, mỗi sự kiện có danh tính trang cụ thể. Có thể giải mã mẫu thành tên bài viết và giải thích gợi ý ở đúng mức “trang tiếp theo”.</p>
+<p>Thứ hai, phần lớn đường đi chứa nhiều trang. Dữ liệu cho phép thể hiện tác dụng của lịch sử nhiều bước và sự khác nhau giữa các thứ tự truy cập.</p>
+<p>Thứ ba, quy mô đủ để xây các tập con phục vụ khảo sát khả năng mở rộng. Sau điều kiện tối thiểu hai lượt còn 70.968 chuỗi (mục 2.7). Số này cho phép thiết kế nhiều mức dữ liệu từ 5.000 chuỗi tới toàn bộ tập.</p>
+<p>Thứ tư, dữ liệu có thể biểu diễn trực tiếp thành cơ sở dữ liệu chuỗi. Không cần xây đặc trưng ảnh hoặc văn bản để áp dụng hai thuật toán. Phần quan trọng là giữ đúng ngữ nghĩa đường đi.</p>
+<h3>2.5. Item, event và sequence</h3>
+<p>Một <strong>item</strong> là một trang bài viết. Khi triển khai, mỗi trang sẽ được gán một mã nhất quán và có ánh xạ ngược để đọc kết quả.</p>
+<p>Một <strong>event</strong> là một lượt ghé trang. Trong ứng dụng này, mỗi event chứa một item, vì một vị trí trong lịch sử tương ứng một trang. Biểu diễn bằng itemset đơn vẫn phù hợp với đầu vào dạng chuỗi itemset của GSP và PrefixSpan.</p>
+<p>Một <strong>sequence</strong> là toàn bộ các event của một lượt chơi theo thứ tự. <strong>Sequence database</strong> là tập các sequence được chọn cho một lần khai phá.</p>
+<p>Ví dụ minh họa:</p>
+<pre><code class="language-text">Tên trang: North America → United States → President of the United States
+Ký hiệu:   A → B → C
+Biểu diễn: ⟨{A}, {B}, {C}⟩
+</code></pre>
+<p>Không gom ba trang thành một itemset <code>{A,B,C}</code>, vì cách đó biểu diễn một nhóm không có thứ tự. Độ dài chuỗi là số lượt ghé, không phải số trang khác nhau. Chẳng hạn, <code>A → B → A</code> dài 3 và chứa 2 trang khác nhau.</p>
+<h3>2.6. Khôi phục thao tác quay lại</h3>
+<p>Ký hiệu <code>&lt;</code> là một hành động, không phải tên trang. Để chuyển sang chuỗi lượt ghé, cần xác định trang mà người chơi quay về.</p>
+<p>Ví dụ thật trong tệp chưa hoàn thành:</p>
+<pre><code class="language-text">Potato;Europe;North_America;&lt;;&lt;
+</code></pre>
+<p>Đường đi bắt đầu ở Potato, tới Europe, rồi North America. Lần quay lại thứ nhất đưa người chơi về Europe; lần thứ hai đưa về Potato. Lịch sử lượt ghé tương ứng là:</p>
+<pre><code class="language-text">Potato → Europe → North America → Europe → Potato
+</code></pre>
+<p>Có thể hình dung một ngăn xếp lưu nhánh lịch sử hiện tại: đi tới trang mới thì thêm trang, quay lại thì bỏ trang hiện tại và lấy trang trước đó. Mỗi lần quay về vẫn được ghi thêm vào lịch sử lượt ghé. Ngăn xếp dùng xác định vị trí hiện tại; lịch sử lượt ghé dùng làm dữ liệu chuỗi.</p>
+<p>Nếu chỉ xóa <code>&lt;</code>, hai lượt quay về sẽ mất. Nếu chỉ lấy ngăn xếp còn lại sau cùng, phần lịch sử đã đi qua cũng mất. Cả hai cách đều thay đổi dữ liệu cần nghiên cứu.</p>
+<p>Trong khảo sát, toàn bộ thao tác quay lại đã diễn giải được, không gặp trường hợp quay lại vượt quá lịch sử. Sau khôi phục, không có hai trang liền kề giống nhau, nhưng 19,89% đường đi vẫn ghé lại một trang ở vị trí xa hơn. Vì vậy, không diễn giải thống kê này thành “dữ liệu không có lặp”.</p>
+<p>Khi tạo tập thực nghiệm, mỗi lượt ghé được gắn thêm một cờ cho biết nó đến từ click tiến hay từ thao tác quay lại. Cờ này không đưa vào thuật toán khai phá; nó chỉ dùng khi đánh giá để tách riêng các lượt tiến (mục 5.10), vì trang đến sau một lần quay lại là trang đã có trong lịch sử và dễ đoán hơn.</p>
+<h3>2.7. Các nguyên tắc chọn và giữ dữ liệu</h3>
+<p>Bài dùng cả đường đi hoàn thành và chưa hoàn thành. Một lượt chưa tới đích vẫn chứa các hành vi thật đã được ghi nhận. Chỉ dùng lượt thành công sẽ thay đổi đối tượng nghiên cứu sang hành vi điều hướng thành công.</p>
+<p>Đề xuất giữ các chuỗi có ít nhất hai lượt vì chúng có ít nhất một chuyển tiếp để phân tích. Khảo sát cho biết điều kiện này giữ 70.968 chuỗi và loại 5.225 chuỗi một lượt.</p>
+<p><strong>[Kết quả] Tập thực nghiệm đã tạo.</strong> Tập được đọc thẳng từ archive gốc của SNAP (SHA-256 bắt đầu bằng <code>97697096</code>), không giải nén ra đĩa, bằng hàm <code>prepare</code> trong <code>thuc-nghiem/spm_wiki.py</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Chỉ số</th>
+<th style="text-align: right;">Giá trị</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Đường đi gốc (hoàn thành + chưa hoàn thành)</td>
+<td style="text-align: right;">76.193 (51.318 + 24.875)</td>
+</tr>
+<tr>
+<td>Đường đi có thao tác quay lại không diễn giải được</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>Chuỗi một lượt bị loại</td>
+<td style="text-align: right;">5.225</td>
+</tr>
+<tr>
+<td>Chuỗi được giữ, |D|</td>
+<td style="text-align: right;">70.968</td>
+</tr>
+<tr>
+<td>Tổng lượt ghé</td>
+<td style="text-align: right;">470.848</td>
+</tr>
+<tr>
+<td>Lượt ghé đến từ thao tác quay lại</td>
+<td style="text-align: right;">33.468 (7,11%)</td>
+</tr>
+<tr>
+<td>Số trang khác nhau</td>
+<td style="text-align: right;">4.179</td>
+</tr>
+<tr>
+<td>Độ dài trung bình / dài nhất</td>
+<td style="text-align: right;">6,63 / 435 lượt</td>
+</tr>
+<tr>
+<td>Train / test (⌊0,8·|D|⌋ / phần còn lại)</td>
+<td style="text-align: right;">56.774 / 14.194 chuỗi</td>
+</tr>
+</tbody>
+</table>
+<p>Các số này khớp với khảo sát: 76.193 − 5.225 = 70.968 chuỗi, và 476.073 − 5.225 = 470.848 lượt ghé. Số trang là 4.179 thay vì 4.182 vì có 3 trang chỉ xuất hiện trong chuỗi một lượt. Các chuỗi được xáo trộn một lần bằng seed 20261101; mọi tập con và phép chia train/test đều lấy theo thứ tự này.</p>
+<p>Giữ thứ tự, các lần ghé lại và các đường đi có cùng giá trị. Nhiều lượt chơi có thể đi cùng một lộ trình; đó chính là dạng lặp mà khai phá mẫu cần quan sát. Không tự xem những đường đi giống nhau là bản ghi lỗi. Cũng không nối các lượt chơi có cùng mã IP thành một sequence, vì mỗi lượt có ranh giới và bối cảnh riêng.</p>
+<p>Sau khi lọc, phải thống kê lại số trang xuất hiện, độ dài và support. Khi mẫu số đổi từ 76.193 sang 70.968, support của một mẫu có thể đổi dù số đường đi chứa mẫu không đổi. Các số liệu khảo sát toàn bộ dữ liệu không được mặc định là thống kê của tập sau lọc.</p>
+<h2>3. Áp dụng GSP và PrefixSpan để khai phá mẫu</h2>
+<h3>3.1. Mẫu chuỗi và quan hệ chuỗi con</h3>
+<p>Xét chuỗi các trang \(S=\langle s_1,\ldots,s_n\rangle\) và mẫu \(P=\langle q_1,\ldots,q_k\rangle\). P là <strong>chuỗi con</strong> của S, ký hiệu \(P\sqsubseteq S\), nếu tồn tại các chỉ số</p>
+<div class="math-display">\[
+1\le i_1&lt;i_2&lt;\cdots&lt;i_k\le n
+\quad\text{sao cho}\quad
+q_j=s_{i_j}\ \ (j=1,\ldots,k).
+\]</div>
+<p>Khi đó ta cũng nói S <strong>chứa</strong> P. Điều kiện tăng dần giữ thứ tự nhưng cho phép bỏ qua các trang nằm giữa.</p>
+<p>Hai paper viết định nghĩa này cho chuỗi itemset: \(\langle a_1a_2\cdots a_k\rangle\sqsubseteq\langle b_1b_2\cdots b_n\rangle\) nếu có \(1\le j_1&lt;\cdots&lt;j_k\le n\) với \(a_1\subseteq b_{j_1},\ldots,a_k\subseteq b_{j_k}\). [Nguồn: Srikant &amp; Agrawal 1996, mục 2; Pei và cộng sự 2004, mục 2.1] Ở bài này mỗi event là itemset đúng một trang, nên \(\{q_j\}\subseteq\{s_{i_j}\}\) tương đương \(q_j=s_{i_j}\). Định nghĩa ở trên là trường hợp riêng của định nghĩa gốc, không phải một định nghĩa mới.</p>
+<p>Vì vậy, mẫu <code>A → B → C</code> có trong cả <code>A → B → C</code> và <code>A → X → B → C</code>. Nó không có trong <code>A → C → B</code>. Một mẫu có trang lặp cũng cần đủ các lần xuất hiện: <code>A → A</code> có trong <code>A → B → A</code>, nhưng không có trong chuỗi chỉ chứa một A.</p>
+<p>Đây là ngữ nghĩa khai phá chuỗi có khoảng cách được dùng chung cho hai thuật toán. Nó khác với việc chỉ đếm các đoạn liền kề. <a href="https://www.philippe-fournier-viger.com/spmf/PrefixSpan.php">Định nghĩa đầu vào và mẫu chuỗi trong SPMF</a>.</p>
+<p>Hai paper và tài liệu này dùng ký hiệu khác nhau cho cùng khái niệm. Bảng sau giúp đối chiếu khi đọc paper:</p>
+<table>
+<thead>
+<tr>
+<th>Khái niệm</th>
+<th>Tài liệu này</th>
+<th>GSP (1996)</th>
+<th>PrefixSpan (2004)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cơ sở dữ liệu chuỗi</td>
+<td>\(D\)</td>
+<td>\(\mathcal D\) (các data-sequence)</td>
+<td>\(S\) (tập các bộ \(\langle sid,s\rangle\))</td>
+</tr>
+<tr>
+<td>Một chuỗi dữ liệu</td>
+<td>\(S\), \(S_1,\ldots,S_5\)</td>
+<td>\(d\)</td>
+<td>\(s\)</td>
+</tr>
+<tr>
+<td>Quan hệ chuỗi con</td>
+<td>\(P\sqsubseteq S\)</td>
+<td>“d contains s”</td>
+<td>\(\alpha\sqsubseteq\beta\)</td>
+</tr>
+<tr>
+<td>Support</td>
+<td>\(\operatorname{sup}_D(P)\), số chuỗi</td>
+<td>“support”; mục 2 gọi là tỷ lệ, phần tóm tắt gọi là số chuỗi</td>
+<td>\(\mathrm{support}_S(\alpha)\), số bộ</td>
+</tr>
+<tr>
+<td>Ngưỡng</td>
+<td>\(\operatorname{min\_sup}\), số nguyên</td>
+<td>minimum support</td>
+<td>min_support, số nguyên dương</td>
+</tr>
+</tbody>
+</table>
+<p>Cần chú ý: paper PrefixSpan dùng chữ S cho <strong>cơ sở dữ liệu</strong>, còn tài liệu này dùng S cho <strong>một chuỗi</strong> và D cho cơ sở dữ liệu.</p>
+<h3>3.2. Support và ngưỡng min_sup</h3>
+<p>Để thống nhất với phần lý thuyết chung của nhóm (Content-v4), <strong>support là số đếm tuyệt đối</strong>: số chuỗi trong cơ sở dữ liệu D chứa P.</p>
+<p>Cơ sở dữ liệu được viết thành tập các cặp (mã chuỗi, chuỗi), giống cách viết của paper PrefixSpan:</p>
+<div class="math-display">\[
+D=\{(\mathit{sid}_1,S_1),\ldots,(\mathit{sid}_N,S_N)\},\qquad |D|=N,
+\]</div>
+<div class="math-display">\[
+\operatorname{sup}_D(P)=\bigl|\{(\mathit{sid},S)\in D:\ P\sqsubseteq S\}\bigr|,
+\qquad
+\operatorname{rsup}_D(P)=\frac{\operatorname{sup}_D(P)}{|D|}.
+\]</div>
+<p>[Nguồn: Pei và cộng sự 2004, mục 2.1, định nghĩa \(\mathrm{support}_S(\alpha)\)]</p>
+<p>Mã chuỗi là bắt buộc. Nhiều lượt chơi có thể đi đúng cùng một lộ trình, và các đường đi trùng nhau được giữ lại (mục 2.7). Nếu viết \(\{S\in D: P\sqsubseteq S\}\) như một tập các chuỗi, các đường đi giống hệt nhau sẽ bị gộp làm một. Ngay trong ví dụ ở mục 3.3, S1 và S3 cùng là ⟨A,B,C⟩: đếm theo tập chuỗi cho sup(⟨A,B⟩) = 3, còn đếm theo cặp (mã, chuỗi) cho đúng 4.</p>
+<p>rsup là <strong>support tương đối</strong>, dùng khi cần so sánh giữa các tập có kích thước khác nhau. Một chuỗi đóng góp tối đa một lần vào sup, dù chứa nhiều cách khớp mẫu. Cách đếm theo chuỗi giúp một đường đi dài, lặp nhiều lần không tự đóng góp như nhiều lượt chơi độc lập.</p>
+<p>Trong thực nghiệm, ngưỡng được nhập dưới dạng tỷ lệ r (ví dụ 0,2%) rồi đổi thành ngưỡng đếm:</p>
+<div class="math-display">\[
+\operatorname{min\_sup}=\lceil r\cdot|D|\rceil,
+\qquad
+P \text{ phổ biến} \iff \operatorname{sup}_D(P)\ge \operatorname{min\_sup}.
+\]</div>
+<p><strong>Vì sao làm tròn lên?</strong> sup là số nguyên, và với số nguyên x thì \(x\ge a \iff x\ge\lceil a\rceil\). Do đó, với mọi r &gt; 0:</p>
+<div class="math-display">\[
+\operatorname{sup}_D(P)\ge\lceil r\cdot|D|\rceil
+\iff \operatorname{sup}_D(P)\ge r\cdot|D|
+\iff \operatorname{rsup}_D(P)\ge r .
+\]</div>
+<p>Ngưỡng đếm và ngưỡng tỷ lệ vì thế chọn ra đúng cùng một tập mẫu. Làm tròn xuống hoặc làm tròn gần nhất có thể nhận cả mẫu có rsup &lt; r.</p>
+<p><strong>Về dấu so sánh.</strong> Paper PrefixSpan định nghĩa mẫu phổ biến bằng \(\mathrm{support}_S(\alpha)\ge\) min_support, với min_support là số nguyên dương. [Nguồn: Pei và cộng sự 2004, mục 2.1] Paper GSP diễn đạt khác: mục 2.1 viết support “greater than” minimum support, còn mục 2 gọi support là tỷ lệ chuỗi trong khi phần tóm tắt gọi là số chuỗi. [Nguồn: Srikant &amp; Agrawal 1996, tóm tắt, mục 2 và 2.1] Tài liệu này theo định nghĩa của PrefixSpan: support là số đếm và dùng dấu ≥. Cả hai bản cài đặt dùng chung định nghĩa này, nên khác biệt diễn đạt của paper GSP không ảnh hưởng tới phép so sánh.</p>
+<p>Chẳng hạn, r = 0,2% trên 20.000 chuỗi cho min_sup = 40 chuỗi; r = 0,1% trên cùng tập cho 20 chuỗi. Phép làm tròn lên được tính bằng số nguyên/phân số chính xác, không bằng số thực dấu phẩy động, để tránh lỗi làm tròn. Ví dụ, trong Python phép nhân số thực 0,07 × 100 cho 7,000000000000001, nên làm tròn lên thành 8 thay vì 7. Cùng một hàm đổi ngưỡng được dùng cho cả hai thuật toán. Khi ghi kết quả, luôn ghi kèm cả r, |D| và min_sup để người đọc không phải tự đổi đơn vị.</p>
+<p>Khi tỷ lệ r giảm trên cùng dữ liệu và cùng giới hạn độ dài, tập mẫu phổ biến có thể mở rộng và số mẫu không giảm. Điều này tạo một trục thực nghiệm để xem hai thuật toán xử lý mức khai phá rộng hơn ra sao.</p>
+<h3>3.3. Bộ dữ liệu minh họa dùng xuyên suốt</h3>
+<p>Các chuỗi dưới đây được dựng để giải thích và tính tay. Chúng không phải các lượt chơi trích xuất từ Wikispeedia.</p>
+<table>
+<thead>
+<tr>
+<th>Ký hiệu</th>
+<th>Tên trang dùng để hình dung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>North America</td>
+</tr>
+<tr>
+<td>B</td>
+<td>United States</td>
+</tr>
+<tr>
+<td>C</td>
+<td>President of the United States</td>
+</tr>
+<tr>
+<td>D</td>
+<td>Canada</td>
+</tr>
+<tr>
+<td>X</td>
+<td>Europe</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Chuỗi</th>
+<th>Lịch sử minh họa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>⟨A, B, C⟩</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>⟨A, X, B, C⟩</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>⟨A, B, C⟩</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>⟨A, B, D⟩</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>⟨B, C⟩</td>
+</tr>
+</tbody>
+</table>
+<p>Chọn r = 40% cho ví dụ, tức min_sup = ⌈0,4 × 5⌉ = 2 chuỗi. A xuất hiện trong 4 chuỗi; B trong 5; C trong 4; D và X chỉ trong 1 chuỗi mỗi item. Do đó A, B, C là các mẫu một item phổ biến.</p>
+<h3>3.4. GSP xử lý ví dụ như thế nào?</h3>
+<p>GSP khai phá theo mức độ dài và quét lại toàn bộ dữ liệu ở mỗi mức. Lượt quét đầu tìm các item phổ biến. Mỗi lượt sau lấy các mẫu phổ biến của mức trước làm “hạt giống”, sinh ứng viên dài hơn một item, rồi quét dữ liệu một lần để đếm support của mọi ứng viên. Thuật toán dừng khi không còn ứng viên hoặc không còn mẫu phổ biến mới. [Nguồn: Srikant &amp; Agrawal 1996, mục 3]</p>
+<p>Gọi \(L_k\) là tập mẫu phổ biến độ dài k và \(C_k\) là tập ứng viên độ dài k. Ứng viên \(C_k\) được sinh từ \(L_{k-1}\) qua hai pha. [Nguồn: Srikant &amp; Agrawal 1996, mục 3.1] Với chuỗi một item mỗi event, hai pha viết được như sau.</p>
+<p><strong>Pha nối (join).</strong> Hai mẫu \(s_1=\langle x_1,\ldots,x_{k-1}\rangle\) và \(s_2=\langle y_1,\ldots,y_{k-1}\rangle\) thuộc \(L_{k-1}\) được nối nếu bỏ item đầu của s₁ thì được đúng chuỗi bỏ item cuối của s₂. Ứng viên mới là s₁ thêm item cuối của s₂:</p>
+<div class="math-display">\[
+\langle x_2,\ldots,x_{k-1}\rangle=\langle y_1,\ldots,y_{k-2}\rangle
+\;\Longrightarrow\;
+\langle x_1,x_2,\ldots,x_{k-1},y_{k-1}\rangle\in C_k .
+\]</div>
+<p>s₁ được phép nối với chính nó. Ở mức 2, cả hai vế của điều kiện đều là chuỗi rỗng, nên mọi cặp item phổ biến (a, b) đều nối được, kể cả a = b.</p>
+<p><strong>Pha cắt tỉa (prune).</strong> Loại ứng viên có một chuỗi con độ dài k−1 không thuộc \(L_{k-1}\). Paper gốc phân biệt hai trường hợp: có ràng buộc max-gap thì chỉ kiểm tra các chuỗi con <em>contiguous</em>; không có max-gap thì kiểm tra mọi chuỗi con. Bài này không dùng max-gap, nên kiểm tra mọi chuỗi con độ dài k−1, tức lần lượt bỏ từng vị trí của ứng viên.</p>
+<p><strong>Lưu ý thuật ngữ “contiguous”.</strong> Paper GSP định nghĩa contiguous subsequence bằng cách bỏ một item ở event đầu, ở event cuối, hoặc ở một event có từ hai item trở lên, rồi lặp lại. [Nguồn: Srikant &amp; Agrawal 1996, mục 3.1] Với chuỗi một item mỗi event, định nghĩa này cho ra đúng các đoạn nằm liền nhau <strong>trong chính mẫu</strong>. Riêng chuỗi con độ dài k−1 thì chỉ có hai: bỏ item đầu và bỏ item cuối. Đây là vị trí bên trong mẫu, không phải điều kiện các trang phải liền kề trong đường đi dữ liệu. Phần 4 dùng chữ “liền kề” theo nghĩa liền kề trong đường đi; hai khái niệm không được trộn. Tài liệu giữ nguyên chữ contiguous khi nói về GSP.</p>
+<p><strong>Cơ sở của cắt tỉa: tính chất Apriori.</strong> Quan hệ ⊑ có tính bắc cầu: nếu P′ ⊑ P và P ⊑ S thì P′ ⊑ S. Vì vậy mọi chuỗi chứa P đều chứa P′, tức tập mã chuỗi chứa P là tập con của tập mã chuỗi chứa P′:</p>
+<div class="math-display">\[
+P'\sqsubseteq P \;\Longrightarrow\; \operatorname{sup}_D(P)\le\operatorname{sup}_D(P').
+\]</div>
+<p>Nếu một chuỗi con P′ đã có \(\operatorname{sup}_D(P')&lt;\operatorname{min\_sup}\) thì mọi P chứa nó cũng có \(\operatorname{sup}_D(P)&lt;\operatorname{min\_sup}\), nên P bị loại mà không cần đếm.</p>
+<p>Trong ví dụ, mức 2 có 3 × 3 = 9 ứng viên từ A, B, C. Ở mức 2, pha cắt tỉa không loại được ứng viên nào: chuỗi con độ dài 1 của ⟨a,b⟩ là ⟨a⟩ và ⟨b⟩, vốn đã phổ biến. Vì vậy cả 9 ứng viên đều phải đếm trên dữ liệu. Đếm trên năm chuỗi, ba ứng viên phổ biến:</p>
+<table>
+<thead>
+<tr>
+<th>Mẫu</th>
+<th>Chuỗi hỗ trợ</th>
+<th style="text-align: right;">sup (số chuỗi)</th>
+<th style="text-align: right;">rsup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⟨A, B⟩</td>
+<td>S1, S2, S3, S4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">80%</td>
+</tr>
+<tr>
+<td>⟨A, C⟩</td>
+<td>S1, S2, S3</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">60%</td>
+</tr>
+<tr>
+<td>⟨B, C⟩</td>
+<td>S1, S2, S3, S5</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">80%</td>
+</tr>
+</tbody>
+</table>
+<p>Các mẫu có D hoặc X không được sinh ra vì D, X không phổ biến. Sáu ứng viên còn lại như ⟨B,A⟩, ⟨C,B⟩ hay ⟨A,A⟩ đã được sinh và đếm nhưng đều có sup = 0: không chuỗi nào chứa B trước A, C trước B hoặc hai lần A. Đây chính là phần “sinh rồi kiểm tra” tốn công của GSP.</p>
+<p><strong>Số ứng viên mức 2 của GSP gốc lớn hơn.</strong> Con số 9 ở trên là số ứng viên khi chỉ mở rộng chuỗi. GSP gốc làm việc với chuỗi itemset. Khi nối \(L_1\) với \(L_1\), nó còn thêm item của s₂ vào <strong>cùng event</strong> với item của s₁, tạo các ứng viên dạng ⟨(a b)⟩ với a &lt; b. [Nguồn: Srikant &amp; Agrawal 1996, mục 3.1] Với n item phổ biến:</p>
+<div class="math-display">\[
+|C_2|_{\text{GSP gốc}}=n^2+\binom{n}{2}=n^2+\frac{n(n-1)}{2},
+\qquad
+|C_2|_{\text{chỉ mở rộng chuỗi}}=n^2 .
+\]</div>
+<p>Paper PrefixSpan minh họa đúng công thức thứ nhất: 6 item phổ biến sinh 6 × 6 + 6 × 5/2 = 51 ứng viên độ dài 2. [Nguồn: Pei và cộng sự 2004, mục 2.2, Ví dụ 2] Trong ví dụ của bài, GSP gốc có 9 + 3 = 12 ứng viên. Ba ứng viên ⟨(A B)⟩, ⟨(A C)⟩, ⟨(B C)⟩ chắc chắn có sup = 0, vì mỗi event chỉ chứa một trang. Bài bỏ hẳn loại ứng viên này (mục 3.7), nên mọi số ứng viên trong tài liệu và trong bảng kết quả đều tính theo cách chỉ mở rộng chuỗi.</p>
+<p>Ở mức 3, pha nối chỉ ghép được một cặp. Bỏ item đầu của ⟨A,B⟩ được ⟨B⟩, đúng bằng ⟨B,C⟩ bỏ item cuối, nên hai mẫu nối thành ⟨A,B,C⟩. Các cặp khác không thỏa điều kiện; chẳng hạn ⟨A,C⟩ bỏ item đầu còn ⟨C⟩, nhưng không mẫu nào trong \(L_2\) bắt đầu bằng C. Ba chuỗi con hai item của ⟨A,B,C⟩ là ⟨A,B⟩, ⟨A,C⟩, ⟨B,C⟩, đều phổ biến nên ứng viên được giữ. Đếm trên dữ liệu được sup = 3, rsup = 60%. S2 vẫn hỗ trợ mẫu dù có X nằm giữa A và B. Ở mức 4, \(L_3=\{\langle A,B,C\rangle\}\) chỉ có một mẫu; bỏ item đầu được ⟨B,C⟩ nhưng không mẫu nào trong \(L_3\) bắt đầu bằng ⟨B,C⟩. Không còn ứng viên, thuật toán dừng.</p>
+<p>Để đếm support, paper gốc đặt ứng viên vào một hash tree, rồi với mỗi chuỗi dữ liệu chỉ kiểm tra những ứng viên có thể nằm trong chuỗi đó. [Nguồn: Srikant &amp; Agrawal 1996, mục 3.2] Bản cài đặt của bài dùng một cây tiền tố ứng viên với cùng vai trò (mục 3.7).</p>
+<p>Chi phí của GSP liên quan đến số ứng viên cần sinh, lưu và kiểm tra. Với Wikispeedia, ước lượng từ khảo sát trên toàn bộ 76.193 đường đi cho thấy có 579 trang đạt r = 0,2% (min_sup = ⌈0,002 × 76.193⌉ = 153) và 1.123 trang đạt r = 0,1% (min_sup = 77). Nếu chỉ mở rộng chuỗi, mức 2 cần 579² = 335.241 và 1.123² = 1.261.129 ứng viên. GSP gốc còn sinh thêm ứng viên cùng event, thành 502.572 và 1.891.132. [Khảo sát, ước lượng trên toàn bộ dữ liệu; tập thực nghiệm sau lọc và tập train sẽ có số khác] Đây là lý do phải chạy thử khả năng hoàn thành trước khi chốt dải cấu hình.</p>
+<h3>3.5. PrefixSpan xử lý cùng ví dụ như thế nào?</h3>
+<p>PrefixSpan mở rộng các tiền tố. Với một tiền tố, thuật toán tập trung vào các phần của đường đi nằm sau vị trí khớp tiền tố, gọi là cơ sở dữ liệu chiếu. Những item đủ phổ biến trong các phần này được dùng để mở rộng mẫu. Thuật toán không sinh tập ứng viên toàn cục: chỉ những item thật sự xuất hiện trong dữ liệu chiếu mới được đếm. [Nguồn: Pei và cộng sự 2004, mục 3.2, Thuật toán 1]</p>
+<p>Paper định nghĩa tiền tố, hậu tố và cơ sở dữ liệu chiếu cho chuỗi itemset. [Nguồn: Pei và cộng sự 2004, mục 3.2, Định nghĩa 1–4, Bổ đề 3.2] Với chuỗi một item mỗi event, các khái niệm này viết gọn như sau. Ký hiệu \(\alpha\cdot\langle y\rangle\) là mẫu α thêm item y vào cuối.</p>
+<ul>
+<li>\(e(\alpha,S)\) là vị trí kết thúc của <strong>lần khớp sớm nhất</strong> của α trong S. Cách khớp này và lý do dùng nó được trình bày ở cuối mục.</li>
+<li><strong>Hậu tố</strong> của S theo α là phần nằm sau vị trí đó: \(S/\alpha=\langle s_{e(\alpha,S)+1},\ldots,s_n\rangle\). Hậu tố có thể rỗng.</li>
+<li><strong>Cơ sở dữ liệu chiếu</strong> theo α gồm hậu tố của mọi chuỗi chứa α, giữ kèm mã chuỗi:</li>
+</ul>
+<div class="math-display">\[
+D|_{\alpha}=\bigl\{(\mathit{sid},\,S/\alpha):\ (\mathit{sid},S)\in D,\ \alpha\sqsubseteq S\bigr\}.
+\]</div>
+<ul>
+<li>Support của mẫu mở rộng đếm được ngay trên dữ liệu chiếu, so với cùng ngưỡng min_sup của toàn bộ D:</li>
+</ul>
+<div class="math-display">\[
+\operatorname{sup}_D(\alpha\cdot\langle y\rangle)=\bigl|\{(\mathit{sid},T)\in D|_{\alpha}:\ y \text{ xuất hiện trong } T\}\bigr| .
+\]</div>
+<p>Đẳng thức cuối là trường hợp riêng, cho event một item, của Bổ đề 3.2 trong paper: support tính trên dữ liệu chiếu bằng support tính trên toàn bộ cơ sở dữ liệu. Nó đúng nhờ hệ quả chứng minh ở cuối mục này.</p>
+<p>Xét tiền tố ⟨A⟩ trong ví dụ:</p>
+<table>
+<thead>
+<tr>
+<th>Chuỗi gốc</th>
+<th>Phần sau A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>⟨B,C⟩</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>⟨X,B,C⟩</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>⟨B,C⟩</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>⟨B,D⟩</td>
+</tr>
+</tbody>
+</table>
+<p>S5 không chứa A nên không đóng góp vào dữ liệu chiếu của tiền tố A. Trong bốn phần còn lại, B xuất hiện ở cả bốn, C ở ba, D và X ở một phần. Với ngưỡng đếm tuyệt đối vẫn là 2, ta có thể mở rộng A thành ⟨A,B⟩ và ⟨A,C⟩.</p>
+<p>Tiếp tục với tiền tố ⟨A,B⟩, phần phía sau là C ở S1, S2, S3 và D ở S4. C có 3 chuỗi hỗ trợ, nên tạo mẫu ⟨A,B,C⟩.</p>
+<p>Mẫu này có <strong>sup = 3, rsup = 3/5 = 60% trên cơ sở dữ liệu gốc</strong>. Không lấy 3/4 để thay cho rsup chỉ vì cơ sở dữ liệu chiếu hiện có bốn chuỗi. Ngưỡng min_sup = 2 của bài toán không được tự thay đổi theo từng nhánh chiếu.</p>
+<p>Toàn bộ quá trình trên ví dụ, gồm cả các nhánh chưa trình bày ở trên:</p>
+<table>
+<thead>
+<tr>
+<th>Tiền tố α</th>
+<th>Dữ liệu chiếu \(D|_{\alpha}\) (hậu tố)</th>
+<th>Item đạt min_sup = 2</th>
+<th>Mẫu mới</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⟨A⟩</td>
+<td>S1: ⟨B,C⟩; S2: ⟨X,B,C⟩; S3: ⟨B,C⟩; S4: ⟨B,D⟩</td>
+<td>B (4), C (3)</td>
+<td>⟨A,B⟩, ⟨A,C⟩</td>
+</tr>
+<tr>
+<td>⟨A,B⟩</td>
+<td>S1: ⟨C⟩; S2: ⟨C⟩; S3: ⟨C⟩; S4: ⟨D⟩</td>
+<td>C (3)</td>
+<td>⟨A,B,C⟩</td>
+</tr>
+<tr>
+<td>⟨A,C⟩</td>
+<td>S1, S2, S3: rỗng</td>
+<td>không có</td>
+<td>—</td>
+</tr>
+<tr>
+<td>⟨A,B,C⟩</td>
+<td>S1, S2, S3: rỗng</td>
+<td>không có</td>
+<td>—</td>
+</tr>
+<tr>
+<td>⟨B⟩</td>
+<td>S1: ⟨C⟩; S2: ⟨C⟩; S3: ⟨C⟩; S4: ⟨D⟩; S5: ⟨C⟩</td>
+<td>C (4)</td>
+<td>⟨B,C⟩</td>
+</tr>
+<tr>
+<td>⟨B,C⟩</td>
+<td>S1, S2, S3, S5: rỗng</td>
+<td>không có</td>
+<td>—</td>
+</tr>
+<tr>
+<td>⟨C⟩</td>
+<td>S1, S2, S3, S5: rỗng</td>
+<td>không có</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Cộng ba mẫu một item ⟨A⟩, ⟨B⟩, ⟨C⟩ từ lượt quét đầu, PrefixSpan tìm đúng 7 mẫu như GSP (mục 3.6). Hậu tố rỗng ứng với ký hiệu <code>$</code> trong Bảng 3 của paper: chuỗi có chứa tiền tố nhưng không còn gì để mở rộng. Theo Thuật toán 1 của paper, mỗi mẫu mới lại được chiếu tiếp; các nhánh dừng khi không còn item đạt ngưỡng.</p>
+<p><strong>Vì sao chỉ cần vị trí khớp sớm nhất?</strong> Ví dụ trên có cách khớp đơn giản. Đường đi thật có trang lặp, nên một tiền tố có thể khớp theo nhiều cách. Paper mô tả cách làm cho trường hợp này trong Ví dụ 4: với tiền tố ⟨a⟩, chỉ xét phần sau <strong>lần xuất hiện đầu tiên</strong> của a. [Nguồn: Pei và cộng sự 2004, mục 3.2] Với tiền tố dài hơn, bài dùng <strong>khớp tham lam</strong> từ trái sang. Cho \(\alpha=\langle q_1,\ldots,q_k\rangle\sqsubseteq S\): \(i_1\) là vị trí đầu tiên có \(s_{i_1}=q_1\); với t ≥ 2, \(i_t\) là vị trí đầu tiên sau \(i_{t-1}\) có \(s_{i_t}=q_t\). Đặt \(e(\alpha,S)=i_k\).</p>
+<p><em>Bổ đề.</em> Nếu \(\alpha\sqsubseteq S\) thì khớp tham lam tồn tại. Hơn nữa, với mọi cách khớp \(j_1&lt;\cdots&lt;j_k\) của α trong S, ta có \(i_t\le j_t\) với mọi t. Đặc biệt \(e(\alpha,S)\le j_k\): khớp tham lam kết thúc sớm nhất.</p>
+<p><em>Chứng minh (quy nạp theo t).</em> Với t = 1: \(i_1\) là vị trí đầu tiên của \(q_1\) nên \(i_1\le j_1\). Giả sử \(i_t\le j_t\). Ta có \(j_{t+1}&gt;j_t\ge i_t\) và \(s_{j_{t+1}}=q_{t+1}\), nên \(j_{t+1}\) là một vị trí sau \(i_t\) chứa \(q_{t+1}\). \(i_{t+1}\) là vị trí đầu tiên như vậy, nên \(i_{t+1}\le j_{t+1}\). Sự tồn tại cũng suy ra từ lập luận này: mỗi bước luôn có ít nhất vị trí \(j_{t+1}\) để chọn. ∎</p>
+<p><em>Hệ quả.</em> Với mọi item y:</p>
+<div class="math-display">\[
+\alpha\cdot\langle y\rangle\sqsubseteq S
+\iff
+y \text{ xuất hiện trong } S \text{ ở một vị trí lớn hơn } e(\alpha,S).
+\]</div>
+<p>Chiều ⇐: nối vị trí của y vào sau khớp tham lam là được một cách khớp của \(\alpha\cdot\langle y\rangle\). Chiều ⇒: một cách khớp của \(\alpha\cdot\langle y\rangle\) đặt α kết thúc tại một vị trí \(j_k\). Theo bổ đề, \(j_k\ge e(\alpha,S)\), và y nằm ở vị trí lớn hơn \(j_k\), nên cũng lớn hơn \(e(\alpha,S)\).</p>
+<p>Hệ quả cho hai điều. Thứ nhất, hậu tố sau vị trí khớp sớm nhất chứa mọi khả năng mở rộng, nên không bỏ sót mẫu. Thứ hai, mỗi chuỗi chỉ có một hậu tố trong dữ liệu chiếu, nên không chuỗi nào bị đếm hai lần vào support. Bản GSP của bài cũng dùng khớp tham lam để kiểm tra một chuỗi có chứa ứng viên hay không. Bổ đề và hệ quả đã được kiểm tra thêm bằng code, so với cách liệt kê mọi cách khớp, trên 20.000 cặp (chuỗi, mẫu) ngẫu nhiên. Phép kiểm tra này sẽ được đưa vào notebook.</p>
+<p>Paper PrefixSpan đề xuất <strong>pseudo-projection</strong>: thay vì chép phần hậu tố ra thành dữ liệu mới, chỉ lưu cặp (mã chuỗi, vị trí bắt đầu hậu tố). [Nguồn: Pei và cộng sự 2004, mục 3.3] Ví dụ, dữ liệu chiếu của ⟨A⟩ chỉ là bốn cặp (S1, sau vị trí 1), (S2, sau vị trí 1), (S3, sau vị trí 1), (S4, sau vị trí 1). Bản cài đặt của bài dùng cách này vì toàn bộ dữ liệu Wikispeedia nằm vừa trong bộ nhớ.</p>
+<p>Bảng 3 của paper có khi lưu nhiều vị trí cho một chuỗi, ví dụ {2, 3, 6}. Nhiều vị trí là cần thiết cho mở rộng itemset, khi item mới phải nằm <strong>cùng event</strong> với item cuối của tiền tố: lần xuất hiện đầu tiên của tiền tố có thể nằm trong một event không chứa item đó. Dữ liệu của bài chỉ có mở rộng chuỗi, và theo hệ quả trên, một vị trí (sau lần khớp sớm nhất) là đủ.</p>
+<p>PrefixSpan có thể giảm việc xét ứng viên không tồn tại nhờ chỉ đếm item có trong dữ liệu chiếu. Tuy nhiên, việc tạo và lưu nhiều dữ liệu chiếu cũng có chi phí. Paper gốc báo cáo PrefixSpan nhanh hơn GSP trong hầu hết thí nghiệm của họ, và GSP chỉ chạy tốt khi min_support khá cao. [Nguồn: Pei và cộng sự 2004, mục 4.1] Cùng mục đó có ba chi tiết cần nói kèm:</p>
+<ul>
+<li>Bản GSP trong thí nghiệm do chính nhóm tác giả PrefixSpan tự cài bằng C++, theo mô tả của paper GSP.</li>
+<li>Kết quả không tuyệt đối. Trong thử nghiệm khả năng mở rộng trên tập tổng hợp T2.5S10I1.25 với min_support 1%, GSP nhỉnh hơn một chút khi cơ sở dữ liệu có từ 600 nghìn đến 800 nghìn chuỗi.</li>
+<li>Paper có một dataset click web thật là Gazelle (KDD Cup 2000; 29.369 chuỗi; 1.423 trang khác nhau). Trên dataset này, PrefixSpan nhanh hơn rõ và dùng ít bộ nhớ hơn GSP khoảng một bậc. Chẳng hạn ở support 0,018%, GSP dùng khoảng 40 MB còn PrefixSpan khoảng 2,7 MB.</li>
+</ul>
+<p>Đó là kết quả trên dữ liệu và bản cài đặt của paper. Với bài này, chúng là giả thuyết cần kiểm tra, không phải kết luận có sẵn.</p>
+<h3>3.6. Đầu ra chung cần kiểm chứng</h3>
+<p>Với dữ liệu minh họa, r = 40% (min_sup = 2) và cho phép mẫu dài từ 1 đến ít nhất 3, tập mẫu được tính tay là:</p>
+<table>
+<thead>
+<tr>
+<th>Mẫu</th>
+<th style="text-align: right;">sup (số chuỗi)</th>
+<th style="text-align: right;">rsup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⟨A⟩</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">80%</td>
+</tr>
+<tr>
+<td>⟨B⟩</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>⟨C⟩</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">80%</td>
+</tr>
+<tr>
+<td>⟨A,B⟩</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">80%</td>
+</tr>
+<tr>
+<td>⟨A,C⟩</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">60%</td>
+</tr>
+<tr>
+<td>⟨B,C⟩</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">80%</td>
+</tr>
+<tr>
+<td>⟨A,B,C⟩</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">60%</td>
+</tr>
+</tbody>
+</table>
+<p>Có 7 mẫu. Đây là kết quả suy luận trên ví dụ nhỏ, không phải kết quả chạy thư viện hoặc kết quả từ Wikispeedia. Sau này có thể dùng nó làm một trường hợp kiểm tra trước thực nghiệm lớn.</p>
+<p>Với dữ liệu thật, hai nhánh cần cùng dữ liệu, ngưỡng r và min_sup, cách đếm support, khoảng cách được phép và giới hạn độ dài. Sau đó so sánh từng cặp (mẫu, số chuỗi hỗ trợ). Cùng số lượng mẫu không đủ chứng minh hai đầu ra giống nhau; thứ tự ghi các mẫu ra tệp cũng không quyết định tính tương đương.</p>
+<p>Nếu đặt độ dài tối đa 4, kết quả là toàn bộ mẫu thỏa điều kiện trong phạm vi độ dài đó. Không gọi đây là khai phá mọi mẫu ở mọi độ dài. Mẫu một item có ích cho việc kiểm tra thuật toán, nhưng bước gợi ý cần mẫu dài ít nhất hai item để có phần lịch sử và phần ứng viên.</p>
+<h3>3.7. Cài đặt dùng trong bài</h3>
+<p><strong>[Thiết kế]</strong> Cả hai thuật toán được tự cài đặt bằng Python, chỉ dùng thư viện chuẩn. Lý do: hai nhánh dùng cùng ngôn ngữ, cùng cách biểu diễn chuỗi, cùng hàm đọc dữ liệu, cùng hàm đổi ngưỡng và cùng hàm ghi kết quả. Như vậy chênh lệch đo được phản ánh chủ yếu chiến lược tìm kiếm, không phải khác biệt giữa hai thư viện của hai tác giả. Notebook cũng chạy được trên Kaggle mà không cần cài Java.</p>
+<table>
+<thead>
+<tr>
+<th>Thành phần</th>
+<th>GSP</th>
+<th>PrefixSpan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Đầu vào</td>
+<td>Danh sách chuỗi mã trang; mỗi event một trang</td>
+<td>Như GSP</td>
+</tr>
+<tr>
+<td>Mở rộng mẫu</td>
+<td>Chỉ mở rộng chuỗi (thêm một event mới)</td>
+<td>Như GSP</td>
+</tr>
+<tr>
+<td>Sinh ứng viên</td>
+<td>Nối + cắt tỉa theo Apriori ở mỗi mức</td>
+<td>Không sinh; chỉ đếm item có trong dữ liệu chiếu</td>
+</tr>
+<tr>
+<td>Đếm support</td>
+<td>Mỗi mức quét toàn bộ dữ liệu một lần; ứng viên đặt trong cây tiền tố; mỗi chuỗi được dò theo vị trí khớp sớm nhất, mỗi ứng viên cộng tối đa 1 cho mỗi chuỗi</td>
+<td>Mỗi tiền tố quét các hậu tố trong dữ liệu chiếu; mỗi item cộng tối đa 1 cho mỗi chuỗi</td>
+</tr>
+<tr>
+<td>Dữ liệu chiếu</td>
+<td>Không có</td>
+<td>Pseudo-projection: (mã chuỗi, vị trí)</td>
+</tr>
+<tr>
+<td>Ngưỡng</td>
+<td>min_sup = ⌈r·|D|⌉, tính chính xác</td>
+<td>Như GSP</td>
+</tr>
+<tr>
+<td>Độ dài mẫu</td>
+<td>1 đến 4</td>
+<td>1 đến 4</td>
+</tr>
+</tbody>
+</table>
+<p>Vì mỗi event trong dữ liệu chỉ chứa một trang, không có mẫu dạng ⟨(A B)⟩ (hai trang trong cùng một event). Do đó cả hai bản cài đặt bỏ qua phần mở rộng itemset (I-extension) và chỉ dùng mở rộng chuỗi (S-extension). Điều này áp dụng như nhau cho hai nhánh và không làm mất mẫu nào trên dữ liệu này, vì mọi ứng viên cùng event đều có sup = 0. Với GSP, điều này cũng có nghĩa bản cài đặt không sinh \(n(n-1)/2\) ứng viên cùng event ở mức 2 như GSP gốc (mục 3.4). Số ứng viên GSP báo cáo trong kết quả là số ứng viên chỉ mở rộng chuỗi. Với PrefixSpan, mỗi chuỗi trong dữ liệu chiếu chỉ cần một vị trí (mục 3.5). Thư viện tổng quát như SPMF vẫn phải xét cả hai loại mở rộng, nên thời gian tuyệt đối không so trực tiếp được với thư viện đó.</p>
+<p>Cây tiền tố trong GSP thay cho hash tree của paper: cả hai đều nhằm chỉ kiểm tra những ứng viên có thể nằm trong chuỗi đang đọc. Đây là lựa chọn cài đặt của bài, được ghi rõ khi trình bày kết quả.</p>
+<p>Tính đúng được kiểm tra trước khi đo, theo bốn lớp:</p>
+<ol>
+<li>Ví dụ năm chuỗi ở mục 3.3 phải cho đúng 7 mẫu và sup đã tính tay.</li>
+<li>Các trường hợp biên: trang lặp (⟨A,A⟩ có trong A→B→A), khoảng cách, ngưỡng phải làm tròn và giới hạn độ dài.</li>
+<li>Trên nhiều cơ sở dữ liệu ngẫu nhiên nhỏ, kết quả của hai bản cài đặt phải trùng với cách đếm vét cạn (liệt kê mọi chuỗi con của từng chuỗi).</li>
+<li>Trên một tập con Wikispeedia thật, kết quả được đối chiếu với SPMF (thư viện Java chuẩn) chạy trên máy cục bộ. SPMF chỉ dùng để đối chiếu, không dùng để đo hiệu năng.</li>
+</ol>
+<p><strong>[Kết quả]</strong> Cả bốn lớp đều đạt (<code>thuc-nghiem/kiem_tra_tinh_dung.py</code>, kết quả trong <code>thuc-nghiem/ket-qua/kiem_tra_tinh_dung.json</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Lớp</th>
+<th>Nội dung kiểm tra</th>
+<th>Kết quả</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Ví dụ năm chuỗi, min_sup = 2</td>
+<td>Cả hai cho đúng 7 mẫu và sup tính tay; GSP sinh 9 ứng viên mức 2 và 1 ứng viên mức 3 như mục 3.4</td>
+</tr>
+<tr>
+<td>2</td>
+<td>13 trường hợp biên: ⟨A,A⟩ trong A→B→A, chuỗi lặp chỉ đếm một lần, khoảng cách, đường đi trùng, giới hạn độ dài 1 và 2, ngưỡng quá cao, năm phép làm tròn ngưỡng</td>
+<td>Đạt cả 13</td>
+</tr>
+<tr>
+<td>3</td>
+<td>600 cơ sở dữ liệu ngẫu nhiên nhỏ, ngưỡng và độ dài tối đa ngẫu nhiên; tổng 19.189 mẫu tham chiếu</td>
+<td>GSP = PrefixSpan = vét cạn ở cả 600 trường hợp</td>
+</tr>
+<tr>
+<td>4</td>
+<td>SPMF 2.65 (PrefixSpan, độ dài 1–4) trên tập con Wikispeedia thật</td>
+<td>Trùng từng cặp (mẫu, sup) ở 4 cấu hình: 5.000 chuỗi với r = 1%, 0,5%, 0,2% (103, 301, 1.226 mẫu) và 20.000 chuỗi với r = 0,2% (1.099 mẫu)</td>
+</tr>
+</tbody>
+</table>
+<p>Ngoài ra, ở mọi cấu hình của phép đo chính và của phần đánh giá, tập (mẫu, sup) của GSP và PrefixSpan được so trực tiếp và đều trùng nhau (mục 5.9, 5.10).</p>
+<h2>4. Diễn giải mẫu và sử dụng để gợi ý trang tiếp theo</h2>
+<h3>4.1. Một mẫu cho biết điều gì?</h3>
+<p>Mẫu ⟨A,B,C⟩ phổ biến cho biết có đủ nhiều đường đi chứa A trước B và B trước C. Khi đọc bằng tên trang, nó mô tả một trật tự điều hướng lặp lại. Support cho biết mức độ phổ biến trên tập đường đi đang xét.</p>
+<p>Mẫu không tự cho biết mọi người đi theo lộ trình này vì cùng một lý do. Nó cũng không chứng minh trang A gây ra việc truy cập B hoặc C. Trong Wikispeedia, mức phổ biến còn có thể liên quan đến trang xuất phát, trang đích được giao và cấu trúc liên kết của website.</p>
+<p>Vì vậy, một diễn giải phù hợp là “mẫu này xuất hiện trong một tỷ lệ đường đi và có thể cung cấp bằng chứng điều hướng”. Muốn nói về động cơ, trải nghiệm hoặc hiệu quả đối với người dùng cần thêm dữ liệu đánh giá.</p>
+<h3>4.2. Những chuyển tiếp có thật đã quan sát</h3>
+<p>Khảo sát toàn bộ 76.193 đường đi đã tìm được các đoạn liền kề lặp lại, ví dụ:</p>
+<table>
+<thead>
+<tr>
+<th>Đoạn hai trang liền kề</th>
+<th style="text-align: right;">Số đường đi chứa đoạn</th>
+<th style="text-align: right;">Tỷ lệ trên toàn bộ đường đi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Animal → Mammal</td>
+<td style="text-align: right;">733</td>
+<td style="text-align: right;">0,962%</td>
+</tr>
+<tr>
+<td>North America → United States</td>
+<td style="text-align: right;">727</td>
+<td style="text-align: right;">0,954%</td>
+</tr>
+<tr>
+<td>Brain → Computer science</td>
+<td style="text-align: right;">703</td>
+<td style="text-align: right;">0,923%</td>
+</tr>
+</tbody>
+</table>
+<p>Mỗi đoạn được tính tối đa một lần trong mỗi đường đi. Các số liệu này giúp xác nhận dữ liệu có hành vi lặp và tên trang đủ rõ để diễn giải.</p>
+<p>Đây là thống kê các đoạn <strong>liền kề</strong> trong khảo sát cấu trúc. Chúng không phải đầu ra GSP–PrefixSpan, vì hai thuật toán khai phá chuỗi con cho phép khoảng cách. Đầu ra thật của hai thuật toán được trình bày ở mục 4.8. Đối với cùng một mẫu hai trang, số chuỗi chứa nó có khoảng cách có thể cao hơn số chuỗi chứa nó liền kề.</p>
+<h3>4.3. Vì sao chưa thể lấy item cuối mẫu làm dự đoán ngay?</h3>
+<p>Trong ví dụ ở phần 3, mẫu ⟨A,B,C⟩ được hỗ trợ bởi S1, S2 và S3. Nhưng S2 là ⟨A,X,B,C⟩: ngữ cảnh ⟨A,B⟩ không xuất hiện liền kề. Nếu lịch sử hiện tại vừa kết thúc bằng hai lượt A rồi B, S2 không phải một lần quan sát đúng ngữ cảnh liền kề đó.</p>
+<p>Ngoài ra, một đường đi thật có thể chứa ⟨A,B,X,C⟩ và vẫn hỗ trợ mẫu ⟨A,B,C⟩. Khi ấy, trang ngay sau B là X, không phải C. Mẫu giữ đúng thứ tự nhưng không quy định mọi bước chuyển tiếp trực tiếp.</p>
+<p>Để ứng dụng thật sự nói về lượt ngay tiếp theo, cần kết hợp mẫu với các lần chuyển tiếp trực tiếp quan sát được. Bước này phải giống nhau cho cả GSP và PrefixSpan.</p>
+<h3>4.4. Chọn ứng viên từ các mẫu</h3>
+<p>Một mẫu dài ít nhất hai item được tách thành:</p>
+<div class="math-display">\[
+P=\langle h_1,\ldots,h_m,y\rangle.
+\]</div>
+<p>Phần \(h=\langle h_1,\ldots,h_m\rangle\) là ngữ cảnh, còn y là trang ứng viên. Khi có lịch sử H, xét những h khớp với một đoạn cuối liền kề của H. Dùng đoạn cuối giúp gắn gợi ý với trạng thái gần nhất của người dùng.</p>
+<p>Ví dụ, nếu H kết thúc bằng ⟨A,B⟩ thì có thể xét các mẫu bắt đầu bằng ngữ cảnh ⟨A,B⟩. Nếu thiếu bằng chứng, có thể lùi về ngữ cảnh ngắn hơn ⟨B⟩. Đề xuất ưu tiên ngữ cảnh dài nhất có đủ bằng chứng; đây là một quy tắc cần được áp dụng nhất quán.</p>
+<p>Độ dài ngữ cảnh tối đa phụ thuộc giới hạn độ dài mẫu. Nếu chỉ khai phá mẫu tối đa 4 item thì một mẫu cung cấp tối đa 3 item ngữ cảnh và 1 item ứng viên.</p>
+<h3>4.5. Đếm bằng chứng chuyển tiếp và tính điểm</h3>
+<p>Gọi C(h) là số vị trí trong dữ liệu dùng cho khai phá mà h xuất hiện liền kề và còn ít nhất một lượt phía sau. Gọi C(h,y) là số vị trí trong số đó có trang ngay tiếp theo là y. Viết thành công thức: với ngữ cảnh \(h=\langle h_1,\ldots,h_m\rangle\) và một chuỗi \(S=\langle s_1,\ldots,s_n\rangle\), tập vị trí cần đếm là</p>
+<div class="math-display">\[
+\mathrm{Pos}(h,S)=\bigl\{\,i:\ 1\le i\le n-m,\ \ s_{i+\ell-1}=h_\ell\ \text{ với mọi } \ell=1,\ldots,m\,\bigr\}.
+\]</div>
+<p>Trên tập dữ liệu dùng để đếm (tập train trong đánh giá ở mục 5.10):</p>
+<div class="math-display">\[
+C(h)=\sum_{(\mathit{sid},S)\in D}\bigl|\mathrm{Pos}(h,S)\bigr|,
+\qquad
+C(h,y)=\sum_{(\mathit{sid},S)\in D}\bigl|\{\,i\in\mathrm{Pos}(h,S):\ s_{i+m}=y\,\}\bigr| .
+\]</div>
+<p>Điều kiện \(i\le n-m\) bảo đảm vị trí \(i+m\) tồn tại, tức h không nằm sát cuối đường đi. Mỗi vị trí trong \(\mathrm{Pos}(h,S)\) có đúng một trang tiếp theo, nên \(\sum_{y}C(h,y)=C(h)\). Đề xuất điểm xếp hạng:</p>
+<div class="math-display">\[
+\operatorname{score}(y\mid h)=\frac{C(h,y)}{C(h)}.
+\]</div>
+<p>Nếu C(h)=0 thì không tính điểm từ ngữ cảnh đó. Những lần h xuất hiện ngay ở cuối đường đi không có lượt tiếp theo được quan sát nên không nằm trong mẫu số.</p>
+<p>Điểm này mô tả tỷ lệ chuyển tiếp trực tiếp đã quan sát cho ngữ cảnh h. Vì \(\sum_{y}C(h,y)=C(h)\), tổng điểm của mọi trang y sau cùng một h đúng bằng 1. Điểm có thể hỗ trợ xếp hạng ứng viên, nhưng chưa phải xác suất được hiệu chỉnh cho một người dùng mới.</p>
+<p><strong>Cần nói rõ khi trình bày:</strong> về mặt công thức, C(h,y)/C(h) chính là cách ước lượng tần suất “trang tiếp theo khi biết m trang gần nhất” của mô hình Markov bậc m (n-gram):</p>
+<div class="math-display">\[
+\hat P\bigl(p_{t+1}=y \mid \langle p_{t-m+1},\ldots,p_t\rangle=h\bigr)=\frac{C(h,y)}{C(h)} .
+\]</div>
+<p>Việc ưu tiên ngữ cảnh dài rồi lùi về ngữ cảnh ngắn cũng giống ý tưởng backoff trong n-gram. Phần mà mẫu GSP/PrefixSpan đóng góp là <strong>lọc</strong>: chỉ xét ngữ cảnh h và ứng viên y khi ⟨h,y⟩ là mẫu phổ biến, tức có đủ nhiều đường đi chứa thứ tự đó. <strong>[Thiết kế]</strong> Bài không so với một mô hình Markov đầy đủ (theo phạm vi đã chốt), nên không kết luận phần đóng góp riêng của bước lọc bằng mẫu so với Markov; bài chỉ so với baseline trang phổ biến.</p>
+<p>Đơn vị đếm của điểm khác với support:</p>
+<table>
+<thead>
+<tr>
+<th>Đại lượng</th>
+<th>Đơn vị đếm</th>
+<th>Câu hỏi được trả lời</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sup của mẫu</td>
+<td>Đường đi chứa mẫu có thứ tự</td>
+<td>Mẫu xuất hiện trong bao nhiêu đường đi?</td>
+</tr>
+<tr>
+<td>C(h)</td>
+<td>Vị trí xuất hiện ngữ cảnh liền kề có lượt phía sau</td>
+<td>Có bao nhiêu cơ hội chuyển tiếp được quan sát?</td>
+</tr>
+<tr>
+<td>C(h,y)</td>
+<td>Vị trí chuyển tiếp trực tiếp từ h tới y</td>
+<td>Bao nhiêu cơ hội trong số đó đi tới y?</td>
+</tr>
+<tr>
+<td>C(h,y)/C(h)</td>
+<td>Tỷ lệ các vị trí chuyển tiếp</td>
+<td>Trong các cơ hội quan sát được, y xuất hiện sau h với tỷ lệ nào?</td>
+</tr>
+</tbody>
+</table>
+<p>Một đường đi dài có thể đóng góp nhiều vị trí vào C(h), trong khi chỉ đóng góp tối đa một lần vào support của một mẫu. Cách đếm phải được mô tả rõ để tránh trộn hai loại bằng chứng.</p>
+<h3>4.6. Tính điểm trên ví dụ minh họa</h3>
+<p>Xét lịch sử hiện tại H = ⟨A,B⟩ và ngữ cảnh h = ⟨A,B⟩. Trong năm chuỗi minh họa:</p>
+<table>
+<thead>
+<tr>
+<th>Chuỗi</th>
+<th>Có h liền kề và còn lượt phía sau?</th>
+<th>Lượt ngay sau h</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1: A B C</td>
+<td>Có</td>
+<td>C</td>
+</tr>
+<tr>
+<td>S2: A X B C</td>
+<td>Không</td>
+<td>Không tính cho h này</td>
+</tr>
+<tr>
+<td>S3: A B C</td>
+<td>Có</td>
+<td>C</td>
+</tr>
+<tr>
+<td>S4: A B D</td>
+<td>Có</td>
+<td>D</td>
+</tr>
+<tr>
+<td>S5: B C</td>
+<td>Không</td>
+<td>Không tính cho h này</td>
+</tr>
+</tbody>
+</table>
+<p>Ta có C(h)=3 và C(h,C)=2, nên score(C | h)=2/3. Mẫu ⟨A,B,C⟩ đồng thời đạt min_sup = 2 của ví dụ, nên C là ứng viên có cả mẫu hỗ trợ lẫn chuyển tiếp trực tiếp.</p>
+<p>D có một chuyển tiếp trực tiếp sau h, nhưng mẫu ⟨A,B,D⟩ chỉ có sup = 1 (rsup 20%). Vì nó không đạt min_sup = 2, D không được đưa vào nhóm ứng viên từ h trong thiết kế này.</p>
+<p>Điểm của C vẫn là 2/3, không tự đổi thành 100% chỉ vì C là ứng viên duy nhất còn lại. Phần 1/3 còn lại phản ánh chuyển tiếp tới D đã xảy ra, dù D không đủ điều kiện làm ứng viên. Tổng điểm của các ứng viên được giữ có thể nhỏ hơn 1.</p>
+<p>rsup 60% của mẫu ⟨A,B,C⟩ và điểm 2/3 cho C không mâu thuẫn: chúng có đơn vị đếm và ý nghĩa khác nhau. Cũng không nên gọi tỷ lệ sup(ABC)/sup(AB) = 3/4 là xác suất của bước ngay tiếp theo, vì phép đếm chuỗi có khoảng cách chưa kiểm tra sự liền kề.</p>
+<p>Lưu ý thêm: với ví dụ này, ngưỡng bằng chứng của thực nghiệm (mục 4.7: C(h) ≥ 5) sẽ loại ngữ cảnh ⟨A,B⟩ vì C(h) = 3. Ví dụ chỉ dùng để hiểu cách tính; năm chuỗi là quá ít để đặt ngưỡng thật.</p>
+<h3>4.7. Ngưỡng bằng chứng, xếp hạng và trường hợp thiếu dữ liệu</h3>
+<p>Một tỷ lệ cao nhưng chỉ dựa trên một lần quan sát có thể thiếu ổn định. Ví dụ, 1/1 và 100/100 cùng bằng 100% nhưng có lượng bằng chứng rất khác nhau. Vì vậy, quy tắc dùng ngưỡng số quan sát tối thiểu, không chỉ dựa vào tỷ lệ.</p>
+<p><strong>[Thiết kế]</strong> Quy tắc gợi ý được cố định như sau trước khi xem tập test:</p>
+<ol>
+<li>Mẫu được khai phá trên tập train với độ dài 1–4, nên ngữ cảnh h dài tối đa 3 trang.</li>
+<li>Xét lần lượt h là 3, 2, rồi 1 trang cuối của lịch sử H (đoạn cuối liền kề).</li>
+<li>Ở mỗi độ dài, ứng viên y phải thỏa ba điều kiện: ⟨h,y⟩ là mẫu phổ biến; C(h) ≥ 5; C(h,y) ≥ 2. C(h) và C(h,y) đếm trên tập train.</li>
+<li>Dùng <strong>ngữ cảnh dài nhất</strong> có ít nhất một ứng viên đạt điều kiện. Không trộn ứng viên của nhiều độ dài ngữ cảnh.</li>
+<li>Xếp ứng viên theo score giảm dần; nếu bằng nhau thì theo C(h,y), rồi sup của ⟨h,y⟩, rồi mã trang. Trả về tối đa ba trang.</li>
+<li>Nếu không độ dài nào có ứng viên, đầu ra là “Chưa đủ mẫu để đưa ra gợi ý”.</li>
+</ol>
+<p>Không tự bổ sung trang thiếu bằng chứng chỉ để đủ ba kết quả. Một trường hợp không có gợi ý giúp thể hiện giới hạn của dữ liệu thay vì che giấu nó. Riêng biến thể “mẫu + bổ sung phổ biến” ở mục 5.10 là một phương án đánh giá tách riêng và được gọi tên rõ ràng.</p>
+<p>Các ngưỡng 5 và 2 là lựa chọn hợp lý ban đầu, không được dò trên tập test. Chúng được áp dụng như nhau cho mọi cấu hình và không thay đổi theo thuật toán hoặc theo một ví dụ muốn trình diễn. Nếu muốn dò ngưỡng, phải tách thêm tập validation từ train.</p>
+<h3>4.8. Thông tin nên đi cùng một gợi ý</h3>
+<p>Với ví dụ trên, một kết quả minh họa có thể được giải thích bằng bảng sau:</p>
+<table>
+<thead>
+<tr>
+<th>Thông tin</th>
+<th>Giá trị minh họa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lịch sử</td>
+<td>⟨A,B⟩</td>
+</tr>
+<tr>
+<td>Ngữ cảnh dùng</td>
+<td>⟨A,B⟩</td>
+</tr>
+<tr>
+<td>Trang ứng viên</td>
+<td>C</td>
+</tr>
+<tr>
+<td>Mẫu hỗ trợ</td>
+<td>⟨A,B,C⟩</td>
+</tr>
+<tr>
+<td>sup / rsup của mẫu</td>
+<td>3 chuỗi / 3/5 = 60%</td>
+</tr>
+<tr>
+<td>Bằng chứng chuyển tiếp</td>
+<td>C(h)=3; C(h,C)=2</td>
+</tr>
+<tr>
+<td>Điểm xếp hạng</td>
+<td>2/3</td>
+</tr>
+</tbody>
+</table>
+<p>Bảng này dùng để hiểu đầu ra và có thể thay ký hiệu bằng tên bài viết. Nó không phải kết quả thực nghiệm trên Wikispeedia.</p>
+<h3>4.9. Mẫu thật và ca minh họa trên Wikispeedia</h3>
+<p><strong>[Kết quả]</strong> Mẫu dưới đây được khai phá trên <strong>tập train</strong> (56.774 chuỗi), r = 0,2%, min_sup = ⌈0,002 × 56.774⌉ = 114, độ dài 1–4. GSP và PrefixSpan cho cùng 1.063 mẫu: 619 mẫu một trang, 345 mẫu hai trang, 80 mẫu ba trang, 19 mẫu bốn trang. rsup tính trên 56.774 chuỗi. Các mẫu được chọn theo quy tắc cố định trong <code>thuc-nghiem/danh_gia.py</code>: sup cao nhất theo từng loại.</p>
+<p><strong>Mẫu có sup cao nhất phần lớn là cặp nhiệm vụ của trò chơi.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Mẫu</th>
+<th style="text-align: right;">sup</th>
+<th style="text-align: right;">rsup</th>
+<th>Ghi chú kiểm tra</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Asteroid → Viking</td>
+<td style="text-align: right;">852</td>
+<td style="text-align: right;">1,50%</td>
+<td>Cả 852 đường đi đều xuất phát ở Asteroid và kết thúc ở Viking</td>
+</tr>
+<tr>
+<td>Brain → Telephone</td>
+<td style="text-align: right;">840</td>
+<td style="text-align: right;">1,48%</td>
+<td>837 đường đi xuất phát ở Brain, cả 840 kết thúc ở Telephone</td>
+</tr>
+<tr>
+<td>Theatre → Zebra</td>
+<td style="text-align: right;">718</td>
+<td style="text-align: right;">1,26%</td>
+<td>Cả 718 đường đi xuất phát ở Theatre và kết thúc ở Zebra</td>
+</tr>
+<tr>
+<td>Brain → Communication → Telephone</td>
+<td style="text-align: right;">409</td>
+<td style="text-align: right;">0,72%</td>
+<td>Mẫu ba trang có sup cao nhất</td>
+</tr>
+<tr>
+<td>Theatre → Animal → Mammal → Zebra</td>
+<td style="text-align: right;">227</td>
+<td style="text-align: right;">0,40%</td>
+<td>Mẫu bốn trang có sup cao nhất</td>
+</tr>
+</tbody>
+</table>
+<p>Đây là hệ quả của cách thu thập dữ liệu: trò chơi giao lặp lại một số cặp (trang xuất phát, trang đích), nên nhiều người chơi cùng đi từ Asteroid tới Viking. Mẫu ba, bốn trang cho thấy các “trạm trung gian” hay được chọn trên đường tới đích, chẳng hạn Communication hoặc Computer science trên đường từ Brain tới Telephone. Đúng như cảnh báo ở mục 4.1, những mẫu này mô tả hành vi trong trò chơi có mục tiêu, không phải sở thích đọc tự do.</p>
+<p><strong>Mẫu thể hiện vai trò của thứ tự.</strong> Một số cặp xuất hiện ở giữa đường đi, không gắn với trang xuất phát:</p>
+<table>
+<thead>
+<tr>
+<th>Mẫu</th>
+<th style="text-align: right;">sup</th>
+<th>Chiều ngược</th>
+<th style="text-align: right;">sup chiều ngược</th>
+<th style="text-align: right;">Số đường đi chứa mẫu bắt đầu ở trang đầu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>North America → United States</td>
+<td style="text-align: right;">694</td>
+<td>United States → North America</td>
+<td style="text-align: right;">452</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr>
+<td>Animal → Mammal</td>
+<td style="text-align: right;">643</td>
+<td>Mammal → Animal</td>
+<td style="text-align: right;">236</td>
+<td style="text-align: right;">19</td>
+</tr>
+</tbody>
+</table>
+<p>Cùng hai trang nhưng hai chiều có sup khác nhau rõ rệt, nên biểu diễn có thứ tự giữ được thông tin mà một tập trang không có thứ tự sẽ mất (mục 1.1). Ba cặp nhiệm vụ ở bảng trên có sup chiều ngược bằng 0.</p>
+<p><strong>Mẫu thể hiện vai trò của thao tác quay lại.</strong> United States → United States có sup = 1.046 (rsup 1,84%): United States được ghé ít nhất hai lần trong 1.046 đường đi. Trong đó 853 đường đi (81,5%) có ít nhất một lượt về United States bằng thao tác quay lại <code>&lt;</code>. Nếu chỉ xóa <code>&lt;</code> khỏi dữ liệu (mục 2.6), phần lớn bằng chứng của mẫu này sẽ mất. Ở ngưỡng này không có mẫu dạng x → y → x với x ≠ y nào đạt min_sup.</p>
+<p><strong>Ba ca minh họa từ tập test.</strong> Theo quy tắc ở mục 5.10, mỗi loại lấy ca đầu tiên theo thứ tự test. Ngưỡng bằng chứng là C(h) ≥ 5 và C(h,y) ≥ 2; C(h), C(h,y) và sup đều đếm trên train.</p>
+<p><em>Ca gợi ý trúng</em> (đường đi F47642, vị trí t = 4). Lịch sử: Super Mario Bros. → Japan → Nazi Germany → World War II. Đáp án: Adolf Hitler (click tiến).</p>
+<table>
+<thead>
+<tr>
+<th>Ngữ cảnh thử</th>
+<th style="text-align: right;">C(h)</th>
+<th>Kết quả</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Japan → Nazi Germany → World War II</td>
+<td style="text-align: right;">0</td>
+<td>Không đủ C(h) ≥ 5</td>
+</tr>
+<tr>
+<td>Nazi Germany → World War II</td>
+<td style="text-align: right;">35</td>
+<td>Không có y nào đạt cả hai điều kiện</td>
+</tr>
+<tr>
+<td>World War II</td>
+<td style="text-align: right;">2.394</td>
+<td>6 ứng viên đạt; lấy 3 đầu</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Hạng</th>
+<th>Trang gợi ý</th>
+<th style="text-align: right;">C(h,y)</th>
+<th style="text-align: right;">Điểm C(h,y)/C(h)</th>
+<th style="text-align: right;">sup của ⟨h,y⟩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><strong>Adolf Hitler</strong></td>
+<td style="text-align: right;">260</td>
+<td style="text-align: right;">10,86%</td>
+<td style="text-align: right;">281</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>United States</td>
+<td style="text-align: right;">255</td>
+<td style="text-align: right;">10,65%</td>
+<td style="text-align: right;">335</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Nuclear weapon</td>
+<td style="text-align: right;">161</td>
+<td style="text-align: right;">6,73%</td>
+<td style="text-align: right;">165</td>
+</tr>
+</tbody>
+</table>
+<p>Đáp án đứng hạng 1 nên ca này trúng cả Hit@1 và Hit@3. Điểm 10,86% cho thấy ngay cả gợi ý trúng cũng là một lựa chọn trong nhiều hướng đi; nó không phải xác suất cao. Đây là lượt chơi hoàn thành và Adolf Hitler cũng là trang đích của lượt đó; hệ thống không biết điều này vì không dùng trang đích làm đầu vào.</p>
+<p><em>Ca gợi ý trượt</em> (đường đi F45426, t = 2). Lịch sử: Pride and Prejudice → English language. Đáp án: 15th century. Ngữ cảnh hai trang có C(h) = 4 &lt; 5 nên lùi về ngữ cảnh English language, C(h) = 1.605. Ba gợi ý là United States (349; 21,74%; sup 395), England (266; 16,57%; sup 298) và United Kingdom (77; 4,80%; sup 140). Đáp án không nằm trong ba trang này. Đây là lượt chơi hoàn thành với trang đích Soup; người chơi đi tiếp 15th century → Lithuania → Judaism → Olive oil → Cymbopogon → Soup. Bước chọn 15th century phụ thuộc chiến lược riêng của lượt chơi và trang đích, những thông tin hệ thống không dùng (mục 6.5). Ba gợi ý chỉ phản ánh hướng đi phổ biến nhất sau English language trong train.</p>
+<p><em>Ca không đủ bằng chứng</em> (đường đi F45426, t = 1). Lịch sử: Pride and Prejudice. Đáp án: English language. Ngữ cảnh Pride and Prejudice có C(h) = 27, đạt ngưỡng 5, nhưng không trang y nào vừa có C(h,y) ≥ 2 vừa tạo được mẫu ⟨h,y⟩ đạt min_sup = 114. Hệ thống trả “Chưa đủ mẫu để đưa ra gợi ý” thay vì đoán.</p>
+<p>Ba ca chỉ để hiểu cách đọc đầu ra. Đánh giá chung dựa trên các tỷ lệ ở mục 5.10.</p>
+<h2>5. Thiết kế thực nghiệm so sánh hiệu năng</h2>
+<h3>5.1. Mục tiêu của phép so sánh</h3>
+<p>Thực nghiệm cần xác định chi phí của hai thuật toán khi cùng giải một bài toán khai phá. Điều kiện nền tảng là hai đầu ra hoàn thành hợp lệ có cùng mẫu và số chuỗi hỗ trợ. Nếu kết quả khác nhau, chênh lệch thời gian chưa đủ ý nghĩa vì có thể hai nhánh đang làm khác công việc.</p>
+<p>Các chỉ số chính là thời gian, bộ nhớ và khả năng hoàn thành trong giới hạn tài nguyên. Số mẫu đầu ra giúp mô tả khối lượng kết quả và kiểm tra tính tương đương. Nhiều mẫu hơn không có nghĩa thuật toán chính xác hơn.</p>
+<h3>5.2. Cùng đầu vào và cùng bài toán khai phá</h3>
+<p>Cả hai nhánh phải nhận cùng tập chuỗi sau tiền xử lý và cùng ánh xạ item. Giữ giống nhau tỷ lệ r, cách đổi sang ngưỡng đếm tuyệt đối, độ dài mẫu tối thiểu/tối đa, cách cho phép khoảng cách và chế độ xuất kết quả.</p>
+<p><strong>[Thiết kế]</strong> Hai nhánh là hai bản tự cài đặt bằng Python mô tả ở mục 3.7, chạy cùng phiên bản Python trên cùng máy. Dù vậy, kết luận vẫn thuộc các bản cài đặt cụ thể được đo: cùng ngôn ngữ không loại bỏ mọi khác biệt kỹ thuật, và cách cài đặt khác (C++, Java, cấu trúc dữ liệu khác) có thể cho tỷ lệ chênh lệch khác.</p>
+<p><strong>Phương án SPMF đã được xem xét và không dùng để đo.</strong> Bản <code>spmf.jar</code> mới nhất tải từ trang chính thức ngày 29/10/2026 được biên dịch cho Java 25 (class file major version 69). Máy cục bộ chỉ có Java 8, và môi trường Kaggle không bảo đảm có Java 25 khi không bật Internet để cài thêm. SPMF vẫn được dùng làm phép đối chiếu tính đúng trên máy cục bộ bằng bộ chạy di động có sẵn của SPMF.</p>
+<p>Thiết kế dùng chuỗi con có thứ tự cho phép khoảng cách ở cả hai nhánh, không có ràng buộc min-gap, max-gap hay cửa sổ thời gian. Điều này cũng trùng phạm vi bản GSP của SPMF, vốn chưa cài các ràng buộc gap/window của paper gốc. <a href="https://www.philippe-fournier-viger.com/spmf/GSP.php">Nguồn: SPMF GSP — Implementation details</a> Không đặt điều kiện liền kề riêng cho một nhánh. Bước kiểm tra chuyển tiếp trực tiếp phục vụ gợi ý được thực hiện chung sau khai phá.</p>
+<p>Cấu hình chính khai phá mẫu dài từ 1 đến 4 item. Bước kiểm tra so toàn bộ mẫu trong phạm vi đó; bước gợi ý dùng các mẫu dài ít nhất 2. Giới hạn 4 giúp xác định phạm vi so sánh rõ ràng và vẫn cung cấp ngữ cảnh tới 3 bước. Khả năng hoàn thành được kiểm tra bằng lượt chạy thử trước khi đo chính.</p>
+<h3>5.3. Hai nhóm thí nghiệm chính</h3>
+<table>
+<thead>
+<tr>
+<th>Nhóm thí nghiệm</th>
+<th>Biến thay đổi</th>
+<th>Điều kiện giữ cố định</th>
+<th>Câu hỏi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ảnh hưởng của ngưỡng r</td>
+<td>1%; 0,5%; 0,2%; 0,1%</td>
+<td>20.000 chuỗi; max length 4</td>
+<td>Khi mở rộng phạm vi mẫu phổ biến, hai thuật toán tốn thêm tài nguyên ra sao?</td>
+</tr>
+<tr>
+<td>Khả năng mở rộng</td>
+<td>5.000; 10.000; 20.000; 40.000; toàn bộ 70.968 chuỗi</td>
+<td>r = 0,2%; max length 4</td>
+<td>Khi dữ liệu tăng, thời gian và bộ nhớ thay đổi thế nào?</td>
+</tr>
+</tbody>
+</table>
+<p>Trước khi đo chính có chạy thử khả năng hoàn thành. Nếu một mức quá nặng (ví dụ GSP ở 0,1% vượt giới hạn thời gian), mức đó vẫn được chạy cho cả hai nhánh và ghi trạng thái timeout cho nhánh không hoàn thành, thay vì bỏ khỏi bảng. Chỉ khi một mức làm cả hai nhánh không hoàn thành mới thay mức đó, và lý do được ghi lại.</p>
+<p><strong>[Kết quả] Chạy thử khả năng hoàn thành.</strong> Mỗi cấu hình được chạy một lượt cho mỗi thuật toán, với giới hạn rộng 1.800 giây. Cả 16 lượt đều hoàn thành; lượt lâu nhất là GSP trên toàn bộ 70.968 chuỗi, 1,72 giây. Giới hạn cho đo chính được chốt là 600 giây mỗi lượt. Không mức nào phải thay, và trong đo chính không lượt nào bị timeout.</p>
+<p>Dải support thấp được đề xuất vì dữ liệu phân tán ở mức trang cụ thể. Khảo sát cho thấy trên toàn bộ dữ liệu, ngưỡng 0,1% giữ được 484 cặp và 46 bộ ba liền kề, còn 1% không giữ cặp liền kề nào. Những con số này chỉ định hướng mức độ phân tán; không phải số mẫu GSP/PrefixSpan và không chứng minh không có mẫu chuỗi dài ở support 1%.</p>
+<p>Khi so theo quy mô ở cùng support tương đối, ngưỡng đếm tuyệt đối cũng tăng. Chẳng hạn, 0,2% tương ứng 10 chuỗi trên tập 5.000, nhưng 80 chuỗi trên tập 40.000. Do thành phần dữ liệu và ngưỡng tuyệt đối đều thay đổi, số mẫu không nhất thiết tăng theo số chuỗi, kể cả khi tập nhỏ nằm trong tập lớn.</p>
+<h3>5.4. Lấy mẫu và kiểm soát thứ tự dữ liệu</h3>
+<p>Đề xuất xáo trộn một lần bằng seed cố định để tạo một thứ tự lấy mẫu. Các tập nhỏ được lấy từ đầu thứ tự đã xáo trộn, nên tập lớn chứa tập nhỏ. Cách này giúp tái lập thí nghiệm và giảm khác biệt ngẫu nhiên giữa các mức quy mô.</p>
+<p>Không dùng các dòng đầu tệp gốc như thể chúng là mẫu ngẫu nhiên. Khảo sát cho thấy tệp đường đi hoàn thành không được sắp theo thời gian tăng dần.</p>
+<p>Đánh giá dự đoán dùng cùng thứ tự đã xáo trộn: \(n_{\text{train}}=\lfloor 0{,}8\cdot|D|\rfloor\) đường đi đầu là train, \(|D|-n_{\text{train}}\) đường đi còn lại là test. Nếu tập hợp lệ đúng 70.968 chuỗi thì train có 56.774 chuỗi và test có 14.194 chuỗi. Việc chia theo đường đi được làm trước khi tạo các cặp lịch sử–trang tiếp theo, nên không có lượt chơi nào nằm ở cả hai phía. Đây là chia ngẫu nhiên theo lượt chơi, không phải chia theo thời gian; một người chơi (cùng mã IP băm) vẫn có thể có lượt ở cả train và test.</p>
+<p>Tại mỗi mức quy mô, hai thuật toán nhận đúng cùng dữ liệu. Không chọn riêng một tập thuận lợi cho GSP và một tập khác cho PrefixSpan. Nếu thay đổi quy tắc tiền xử lý, đó phải là một cấu hình mới áp dụng cho cả hai.</p>
+<h3>5.5. Đo thời gian theo cùng phạm vi</h3>
+<p><strong>[Thiết kế]</strong> Mỗi lượt đo chạy trong một tiến trình Python mới, để lượt trước không để lại bộ nhớ đệm hay đối tượng cho lượt sau. Thời gian đo bằng <code>time.perf_counter()</code>, bắt đầu ngay trước khi đọc tệp cơ sở dữ liệu chuỗi và kết thúc sau khi ghi xong tệp mẫu. Phạm vi này gồm đọc dữ liệu, khai phá và ghi kết quả; không gồm tải dataset, tiền xử lý từ archive gốc hay khởi động trình thông dịch Python.</p>
+<p>Phạm vi này giúp hai nhánh được đo trên cùng lượng công việc và cùng chế độ xuất. Cả hai dùng chung một hàm đọc và một hàm ghi, và bộ đếm giờ nằm ở chương trình bao ngoài, không nằm trong từng thuật toán. Nhờ vậy không có trường hợp một nhánh đã đọc dữ liệu trước thời điểm bắt đầu còn nhánh kia chưa đọc.</p>
+<p>Thời gian toàn tiến trình, nếu được lưu thêm để người chạy quan sát, là một loại số đo khác vì có thể bao gồm khởi động môi trường. Không trộn hai loại thời gian trong cùng một biểu đồ so sánh.</p>
+<h3>5.6. Đo bộ nhớ và hiểu giới hạn số đo</h3>
+<p><strong>[Thiết kế]</strong> Bộ nhớ đo bằng <code>tracemalloc</code> của Python: <strong>đỉnh bộ nhớ do Python cấp phát</strong> trong cùng phạm vi đọc–khai phá–ghi ở mục 5.5. tracemalloc theo dõi từng lần cấp phát nên số đo không phụ thuộc nhịp lấy mẫu. Đổi lại, nó làm chương trình chạy chậm đi đáng kể. Vì vậy bộ nhớ được đo ở <strong>lượt chạy riêng</strong>, không đo cùng lúc với thời gian.</p>
+<p>Đây là phần bộ nhớ của các đối tượng Python (danh sách chuỗi, ứng viên, dữ liệu chiếu, kết quả); nó khác tổng bộ nhớ hệ điều hành ghi nhận cho toàn tiến trình, vốn còn gồm trình thông dịch và vùng nhớ chưa trả lại. Báo cáo ghi rõ “đỉnh cấp phát Python (tracemalloc), MB”; không gọi chung là “RAM đỉnh”.</p>
+<p>Cả hai thuật toán dùng cùng chế độ lưu đầu ra: giữ tập mẫu trong bộ nhớ rồi ghi ra tệp bằng cùng hàm. Việc một thuật toán dùng nhiều bộ nhớ hơn cần được đọc cùng thời gian chạy để hiểu đánh đổi.</p>
+<h3>5.7. Lặp lại, tổng hợp và trường hợp không hoàn thành</h3>
+<p><strong>[Thiết kế]</strong> Mỗi cấu hình có 1 lượt khởi động (không tính), 3 lượt đo thời gian và 1 lượt đo bộ nhớ cho mỗi thuật toán. Chạy tuần tự để hai thuật toán không tranh tài nguyên với nhau. Thứ tự đổi theo lịch cố định: lượt lẻ chạy GSP trước, lượt chẵn chạy PrefixSpan trước. Ghi nhận phiên bản Python, hệ điều hành, CPU, RAM và các giới hạn được áp dụng.</p>
+<p>Trung vị thời gian được dùng làm số tổng hợp chính, kèm khoảng dao động của các lượt. Trung vị giảm ảnh hưởng của một lượt bất thường nhưng không xóa hết tác động của tác vụ nền, bộ nhớ đệm hoặc điều kiện môi trường. Do đó vẫn giữ số đo từng lượt để kiểm tra.</p>
+<p>Mỗi lượt có cùng giới hạn thời gian cho hai nhánh (giá trị chốt sau lượt chạy thử, ghi trong cấu hình). Một lượt timeout được ghi là timeout, không coi giới hạn thời gian là thời gian hoàn thành. Nếu lượt khởi động đã timeout thì không chạy thêm lượt đo cho nhánh đó ở cấu hình đó. Tập mẫu đang ghi dở cũng không được coi là kết quả đầy đủ để so số mẫu.</p>
+<h3>5.8. Kiểm tra đầu ra</h3>
+<p>Mỗi mẫu được chuẩn hóa thành một biểu diễn nhất quán, đi kèm số chuỗi hỗ trợ. So hai tập các cặp này để phát hiện mẫu chỉ có ở một nhánh hoặc cùng mẫu nhưng support khác.</p>
+<p>Nếu hai tệp khác thứ tự dòng nhưng chứa cùng các cặp, kết quả vẫn tương đương. Nếu cùng số mẫu nhưng khác nội dung, kiểm tra chưa đạt. Khi có sai khác cần xem lại tham số, biểu diễn itemset, quy tắc làm tròn, xử lý trang lặp, giới hạn độ dài và trạng thái hoàn thành trước khi diễn giải hiệu năng.</p>
+<p>Bộ minh họa có 7 mẫu đã tính tay ở phần 3 là lớp kiểm tra đầu tiên. Nó giúp phát hiện một số lỗi cơ bản, nhưng không thay thế ba lớp kiểm tra còn lại ở mục 3.7: trường hợp biên, so với cách đếm vét cạn trên dữ liệu ngẫu nhiên nhỏ và đối chiếu với SPMF trên tập con Wikispeedia thật. Ở mỗi cấu hình đo chính, tập (mẫu, sup) của GSP và PrefixSpan được so trực tiếp với nhau.</p>
+<h3>5.9. Kết quả đo và cách đọc</h3>
+<p>Một bảng kết quả cần chứa: số chuỗi |D|, r và min_sup, giới hạn độ dài, thuật toán, thời gian từng lượt và trung vị, đỉnh cấp phát Python, số mẫu, số ứng viên GSP đã sinh, kiểm tra đầu ra và trạng thái hoàn thành. Số ứng viên GSP giúp giải thích chênh lệch thời gian bằng cơ chế thuật toán. Bảng đầy đủ, gồm cả thời gian từng lượt, nằm trong <code>thuc-nghiem/ket-qua/do_chinh/bang_ket_qua.md</code>; bảng rút gọn ở mục 5.9.1.</p>
+<p>Hai biểu đồ chính là thời gian theo r và thời gian theo số chuỗi. Mỗi biểu đồ phải ghi rõ các điều kiện giữ cố định. Có thể bổ sung biểu đồ bộ nhớ để xem một lợi thế thời gian có đi kèm đánh đổi tài nguyên hay không.</p>
+<p>Nếu muốn mô tả chênh lệch bằng tỷ số, với cùng một cấu hình đã hoàn thành hợp lệ có thể tính:</p>
+<div class="math-display">\[
+R_T=\frac{T_{\mathrm{GSP}}}{T_{\mathrm{PrefixSpan}}}.
+\]</div>
+<p>Nếu R_T lớn hơn 1, PrefixSpan có thời gian nhỏ hơn trong cấu hình đó; nếu nhỏ hơn 1, GSP có thời gian nhỏ hơn. Chỉ số này không dùng cho cặp có một nhánh timeout và không thay thế việc báo cáo số đo gốc.</p>
+<p>Kết luận cần gắn với từng điều kiện. Chẳng hạn, có thể một nhánh nhanh hơn khi support thấp nhưng gần tương đương ở support cao, hoặc một nhánh nhanh hơn nhưng dùng nhiều bộ nhớ hơn. Các tình huống này là kết quả cần phân tích, không nên ép thành một thuật toán tốt hơn trên mọi tiêu chí.</p>
+<p>Tương tự, tỷ số bộ nhớ là \(R_M=M_{\mathrm{GSP}}/M_{\mathrm{PrefixSpan}}\), với M là đỉnh cấp phát Python.</p>
+<h4>5.9.1. Kết quả đo</h4>
+<p><strong>[Kết quả] Môi trường.</strong> Intel Core i7-14650HX (24 luồng), RAM 32 GB (34.053.414.912 byte), Windows 11 (bản dựng 26200), Python 3.10.20. Có 80 lượt chạy: 8 cấu hình × 2 thuật toán × 5 lượt (1 khởi động, 3 thời gian, 1 bộ nhớ). Không lượt nào lỗi hay timeout. Ở cả 8 cấu hình, tệp mẫu của GSP và PrefixSpan có cùng mã SHA-256, tức trùng từng cặp (mẫu, sup).</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">|D|</th>
+<th style="text-align: right;">r</th>
+<th style="text-align: right;">min_sup</th>
+<th style="text-align: right;">Số mẫu</th>
+<th style="text-align: right;">Ứng viên GSP mức 2</th>
+<th style="text-align: right;">GSP, trung vị (s)</th>
+<th style="text-align: right;">PrefixSpan, trung vị (s)</th>
+<th style="text-align: right;">R_T</th>
+<th style="text-align: right;">GSP (MB)</th>
+<th style="text-align: right;">PrefixSpan (MB)</th>
+<th style="text-align: right;">R_M</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">20.000</td>
+<td style="text-align: right;">1%</td>
+<td style="text-align: right;">200</td>
+<td style="text-align: right;">105</td>
+<td style="text-align: right;">9.216</td>
+<td style="text-align: right;">0,225</td>
+<td style="text-align: right;">0,187</td>
+<td style="text-align: right;">1,20</td>
+<td style="text-align: right;">6,8</td>
+<td style="text-align: right;">9,7</td>
+<td style="text-align: right;">0,70</td>
+</tr>
+<tr>
+<td style="text-align: right;">20.000</td>
+<td style="text-align: right;">0,5%</td>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">289</td>
+<td style="text-align: right;">49.284</td>
+<td style="text-align: right;">0,327</td>
+<td style="text-align: right;">0,243</td>
+<td style="text-align: right;">1,35</td>
+<td style="text-align: right;">12,2</td>
+<td style="text-align: right;">10,8</td>
+<td style="text-align: right;">1,13</td>
+</tr>
+<tr>
+<td style="text-align: right;">20.000</td>
+<td style="text-align: right;">0,2%</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">1.099</td>
+<td style="text-align: right;">400.689</td>
+<td style="text-align: right;">0,628</td>
+<td style="text-align: right;">0,355</td>
+<td style="text-align: right;">1,77</td>
+<td style="text-align: right;">55,0</td>
+<td style="text-align: right;">12,5</td>
+<td style="text-align: right;">4,40</td>
+</tr>
+<tr>
+<td style="text-align: right;">20.000</td>
+<td style="text-align: right;">0,1%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">2.875</td>
+<td style="text-align: right;">1.468.944</td>
+<td style="text-align: right;">1,271</td>
+<td style="text-align: right;">0,464</td>
+<td style="text-align: right;">2,74</td>
+<td style="text-align: right;">188,7</td>
+<td style="text-align: right;">13,8</td>
+<td style="text-align: right;">13,71</td>
+</tr>
+<tr>
+<td style="text-align: right;">5.000</td>
+<td style="text-align: right;">0,2%</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1.226</td>
+<td style="text-align: right;">446.224</td>
+<td style="text-align: right;">0,313</td>
+<td style="text-align: right;">0,090</td>
+<td style="text-align: right;">3,47</td>
+<td style="text-align: right;">56,0</td>
+<td style="text-align: right;">3,4</td>
+<td style="text-align: right;">16,71</td>
+</tr>
+<tr>
+<td style="text-align: right;">10.000</td>
+<td style="text-align: right;">0,2%</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">1.117</td>
+<td style="text-align: right;">408.321</td>
+<td style="text-align: right;">0,397</td>
+<td style="text-align: right;">0,179</td>
+<td style="text-align: right;">2,22</td>
+<td style="text-align: right;">53,1</td>
+<td style="text-align: right;">6,3</td>
+<td style="text-align: right;">8,40</td>
+</tr>
+<tr>
+<td style="text-align: right;">40.000</td>
+<td style="text-align: right;">0,2%</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">1.072</td>
+<td style="text-align: right;">391.876</td>
+<td style="text-align: right;">1,056</td>
+<td style="text-align: right;">0,693</td>
+<td style="text-align: right;">1,52</td>
+<td style="text-align: right;">59,4</td>
+<td style="text-align: right;">24,7</td>
+<td style="text-align: right;">2,40</td>
+</tr>
+<tr>
+<td style="text-align: right;">70.968</td>
+<td style="text-align: right;">0,2%</td>
+<td style="text-align: right;">142</td>
+<td style="text-align: right;">1.072</td>
+<td style="text-align: right;">388.129</td>
+<td style="text-align: right;">1,726</td>
+<td style="text-align: right;">1,246</td>
+<td style="text-align: right;">1,38</td>
+<td style="text-align: right;">67,2</td>
+<td style="text-align: right;">43,7</td>
+<td style="text-align: right;">1,54</td>
+</tr>
+</tbody>
+</table>
+<p>Bốn dòng đầu là nhóm thí nghiệm theo ngưỡng r. Nhóm theo quy mô gồm dòng 20.000 / 0,2% và bốn dòng cuối. Độ dài mẫu 1–4 ở mọi dòng.</p>
+<p><img alt="Thời gian theo ngưỡng r" src="thuc-nghiem/ket-qua/do_chinh/thoi_gian_theo_nguong.png" /></p>
+<p><img alt="Thời gian theo số chuỗi" src="thuc-nghiem/ket-qua/do_chinh/thoi_gian_theo_quy_mo.png" /></p>
+<p><img alt="Bộ nhớ theo ngưỡng r" src="thuc-nghiem/ket-qua/do_chinh/bo_nho_theo_nguong.png" /></p>
+<p><img alt="Bộ nhớ theo số chuỗi" src="thuc-nghiem/ket-qua/do_chinh/bo_nho_theo_quy_mo.png" /></p>
+<p>Vùng tô nhạt quanh đường thời gian là khoảng từ lượt nhanh nhất tới lượt chậm nhất trong 3 lượt; vùng này hẹp đến mức gần như trùng với đường.</p>
+<p><strong>[Kết quả] Chạy lại.</strong> Toàn bộ notebook được chạy lại từ một thư mục trống trên cùng máy, kể cả 80 lượt đo. Kết quả lưu trong <code>thuc-nghiem/ket-qua/chay_lai_notebook/</code>:
+- dữ liệu chuẩn bị trùng từng byte;
+- tập mẫu ở cả 8 cấu hình trùng với lần đo chính;
+- bộ nhớ và các tỷ lệ đánh giá ở mục 5.10.1 trùng hoàn toàn;
+- R_T lệch tối đa 0,14 (cấu hình 10.000 chuỗi: 2,36 so với 2,22), không đổi chiều ở cấu hình nào.</p>
+<h4>5.9.2. Đọc kết quả</h4>
+<p><strong>Thời gian.</strong> PrefixSpan có trung vị nhỏ hơn ở cả 8 cấu hình, với R_T từ 1,20 đến 3,47. Ở mọi cấu hình, lượt nhanh nhất của GSP vẫn chậm hơn lượt chậm nhất của PrefixSpan, nên chênh lệch không phải do dao động giữa các lượt.</p>
+<p><strong>Theo ngưỡng r (20.000 chuỗi).</strong> Khi r giảm từ 1% xuống 0,1%:</p>
+<ul>
+<li>số mẫu tăng từ 105 lên 2.875;</li>
+<li>số item phổ biến tăng từ 96 lên 1.212, nên số ứng viên mức 2 của GSP tăng từ 96² = 9.216 lên 1.212² = 1.468.944;</li>
+<li>thời gian GSP tăng 5,6 lần (0,225 → 1,271 s), PrefixSpan chỉ tăng 2,5 lần (0,187 → 0,464 s); R_T tăng từ 1,20 lên 2,74.</li>
+</ul>
+<p>Cơ chế giải thích nằm ở mục 3.4: GSP phải sinh, lưu và đếm mọi ứng viên mức 2. Ở r = 0,1%, chỉ 1.242 trên 1.468.944 ứng viên mức 2 đạt ngưỡng, khoảng 0,085%. PrefixSpan chỉ đếm những item thật sự có mặt trong dữ liệu chiếu (mục 3.5), nên không trả chi phí cho các ứng viên không tồn tại.</p>
+<p><strong>Theo số chuỗi (r = 0,2%).</strong> Cả hai thuật toán tăng theo |D|, nhưng khác nhau về dạng:</p>
+<ul>
+<li>PrefixSpan tăng gần đúng tỷ lệ với dữ liệu: |D| tăng 14,2 lần (5.000 → 70.968) thì thời gian tăng 13,8 lần (0,090 → 1,246 s).</li>
+<li>GSP chỉ tăng 5,5 lần (0,313 → 1,726 s) vì có một phần chi phí gần như cố định. Ở r cố định, số item phổ biến gần như không đổi (623–668), nên số ứng viên mức 2 cũng gần như không đổi (388.129–446.224). Chi phí sinh và lưu chúng không tăng theo |D|.</li>
+</ul>
+<p>Vì vậy R_T giảm từ 3,47 xuống 1,38 khi dữ liệu lớn hơn: phần chi phí ứng viên cố định của GSP được chia cho nhiều chuỗi hơn. Đây là giải thích dựa trên số ứng viên đo được, chưa phải phép tách thời gian theo từng bước.</p>
+<p><strong>Bộ nhớ.</strong> Ở r = 0,2%, GSP cần 53–67 MB với mọi |D|. Phần lớn số này là ứng viên: riêng dữ liệu chỉ chiếm 1,3 MB (5.000 chuỗi), 5,3 MB (20.000) và 18,7 MB (70.968), đo riêng bằng cùng cách. Ở r = 0,1%, bộ nhớ GSP lên 188,7 MB. PrefixSpan tăng theo |D|, từ 3,4 lên 43,7 MB, vì giữ dữ liệu và dữ liệu chiếu; số phần tử chiếu tăng từ 30.415 lên 401.890.</p>
+<p>Có một ngoại lệ: ở r = 1%, PrefixSpan dùng <strong>nhiều</strong> bộ nhớ hơn (9,7 so với 6,8 MB; R_M = 0,70). Lúc này GSP chỉ có 9.216 ứng viên. Trong khi đó, bản PrefixSpan của bài dựng dữ liệu chiếu cho cả 96 item phổ biến trong một lượt quét (43.182 phần tử). Đây là đặc điểm của cách cài đặt; dựng lần lượt từng dữ liệu chiếu sẽ tốn ít bộ nhớ hơn nhưng phải quét nhiều lần hơn.</p>
+<p><strong>Đối chiếu với giả thuyết từ paper (mục 3.5).</strong> Về xu hướng, kết quả khớp với báo cáo của paper PrefixSpan:</p>
+<ul>
+<li>PrefixSpan nhanh hơn;</li>
+<li>khoảng cách tăng khi support giảm;</li>
+<li>GSP tốn nhiều bộ nhớ hơn khi support thấp.</li>
+</ul>
+<p>Nhưng mức chênh trên dữ liệu này nhỏ hơn nhiều so với paper:</p>
+<ul>
+<li>Cả hai đều hoàn thành mọi cấu hình trong dưới 2 giây.</li>
+<li>R_T chỉ từ 1,2 đến 3,5 lần.</li>
+<li>Lý do: dữ liệu thưa, mẫu dài tối đa 4, và số mẫu phổ biến ít (tối đa 2.875).</li>
+</ul>
+<p>Kết luận này chỉ áp dụng cho các cấu hình đã đo.</p>
+<h3>5.10. Đánh giá hữu ích của ứng dụng trên tập test</h3>
+<p><strong>Vì sao cần phần này?</strong> Luồng trình bày chung của nhóm có mục “Đánh giá độ hữu ích: so kết quả chạy trên tập test với baseline”. Phép so thời gian/bộ nhớ ở các mục trên không trả lời câu hỏi đó. Hai câu hỏi được tách riêng:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>So hiệu năng khai phá</th>
+<th>Đánh giá hữu ích</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Câu hỏi</td>
+<td>GSP hay PrefixSpan tốn ít tài nguyên hơn?</td>
+<td>Gợi ý dựa trên mẫu có tốt hơn cách gợi ý đơn giản không?</td>
+</tr>
+<tr>
+<td>Dữ liệu</td>
+<td>Các tập con 5.000 → toàn bộ; không cần chia</td>
+<td>Train 80% / test 20% theo đường đi</td>
+</tr>
+<tr>
+<td>Thước đo</td>
+<td>Thời gian, bộ nhớ, trạng thái hoàn thành</td>
+<td>Coverage, Hit@1, Hit@3</td>
+</tr>
+<tr>
+<td>So với</td>
+<td>Thuật toán còn lại</td>
+<td>Baseline trang phổ biến</td>
+</tr>
+</tbody>
+</table>
+<p>So sánh thời gian và bộ nhớ không đòi hỏi chia train/test như một bài toán phân lớp: mỗi cấu hình khai phá nhận một tập dữ liệu và tìm toàn bộ mẫu thỏa điều kiện trong tập đó. Ngược lại, đánh giá gợi ý cần dữ liệu test giữ lại, độc lập với dữ liệu dùng để khai phá và đếm C(h), C(h,y).</p>
+<p><strong>[Thiết kế] Cách tạo ca kiểm tra.</strong> Với mỗi đường đi test ⟨p₁,…,p_L⟩ và mỗi vị trí t = 1,…,L−1, lịch sử là ⟨p₁,…,p_t⟩ và đáp án là p_{t+1}. Mọi vị trí đều được tính, nên mẫu số là toàn bộ các lượt chuyển trong tập test, không chỉ những ca hệ thống trả lời được.</p>
+<p><strong>[Thiết kế] Các phương án được so.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phương án</th>
+<th>Cách gợi ý</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline phổ biến</td>
+<td>Ba trang có nhiều lượt ghé nhất trong train, bỏ qua trang hiện tại (dữ liệu không có hai lượt liền kề cùng trang). Luôn có gợi ý.</td>
+</tr>
+<tr>
+<td>Gợi ý từ mẫu</td>
+<td>Quy tắc ở mục 4.7. Có thể không gợi ý khi thiếu bằng chứng.</td>
+</tr>
+<tr>
+<td>Mẫu + bổ sung phổ biến</td>
+<td>Lấy gợi ý từ mẫu, nếu chưa đủ ba trang thì bổ sung theo thứ tự baseline (không trùng, không lấy trang hiện tại). Luôn có ba gợi ý.</td>
+</tr>
+</tbody>
+</table>
+<p>Phương án thứ ba giúp so công bằng với baseline khi cả hai đều luôn trả ba trang. Nó không thay thế việc báo cáo riêng gợi ý từ mẫu.</p>
+<p><strong>[Thiết kế] Thước đo.</strong> Gọi \(\mathcal T\) là tập ca kiểm tra và \(T=|\mathcal T|\). Theo cách tạo ca ở trên, \(T=\sum (L-1)\), lấy tổng trên mọi đường đi test có độ dài L. Với mỗi ca c, \(y_c\) là trang đáp án và \(R_k(c)\) là tập k gợi ý đầu; tập này có thể ít hơn k trang hoặc rỗng.</p>
+<ul>
+<li><strong>Coverage</strong>: tỷ lệ ca có ít nhất một gợi ý.</li>
+<li><strong>Hit@k</strong>, với k = 1 và 3: tỷ lệ ca có đáp án nằm trong k gợi ý đầu. Ca không có gợi ý có \(R_k(c)=\varnothing\), nên tự động tính là trượt.</li>
+</ul>
+<div class="math-display">\[
+\text{Coverage}=\frac{\bigl|\{c\in\mathcal T:\ R_3(c)\neq\varnothing\}\bigr|}{T},
+\qquad
+\text{Hit@}k=\frac{\bigl|\{c\in\mathcal T:\ y_c\in R_k(c)\}\bigr|}{T}.
+\]</div>
+<ul>
+<li><strong>Hit@3 trên các ca có gợi ý</strong>: gọi \(\mathcal T_{\text{cov}}\) là tập ca mà gợi ý từ mẫu trả lời được. Để so công bằng, baseline được tính trên <strong>đúng tập ca đó</strong>.</li>
+</ul>
+<div class="math-display">\[
+\text{Hit@3}\big|_{\text{cov}}=\frac{\bigl|\{c\in\mathcal T_{\text{cov}}:\ y_c\in R_3(c)\}\bigr|}{|\mathcal T_{\text{cov}}|}.
+\]</div>
+<p>Kết quả được báo cáo cho toàn bộ ca và riêng các ca đáp án là một click tiến, tức không phải trang đến bằng thao tác quay lại (cờ ở mục 2.6). Mọi tỷ lệ đều kèm tử số và mẫu số.</p>
+<p><strong>[Thiết kế] Cấu hình.</strong> Mẫu được khai phá trên train với r = 0,2% và độ dài 1–4, cùng mức support chính của thí nghiệm quy mô. Khai phá bằng cả hai thuật toán; kiểm tra hai tập mẫu trùng nhau rồi mới dùng. Các mức 1%, 0,5% và 0,1% được báo cáo thêm như phân tích độ nhạy, để thấy support ảnh hưởng thế nào tới coverage và Hit@3. Ngưỡng bằng chứng giữ cố định ở mọi mức.</p>
+<p><strong>Phạm vi kết luận.</strong> Phần này đánh giá bước gợi ý chung. Khi hai tập mẫu giống nhau, nó không tạo ra một cuộc so sánh độ chính xác giữa GSP và PrefixSpan. Kết quả là đánh giá offline trên Wikispeedia: cho biết gợi ý có trúng lượt tiếp theo được ghi lại hay không, không đo trải nghiệm người dùng. Baseline phổ biến là mốc tối thiểu; vượt baseline này chưa có nghĩa là vượt các mô hình tuần tự mạnh hơn, ví dụ Markov, vốn nằm ngoài phạm vi đã chốt.</p>
+<p><strong>[Thiết kế] Minh họa.</strong> Notebook có một hàm nhận lịch sử và in ra bảng bằng chứng như mục 4.8. Bài trình bày ba ca lấy từ tập test theo quy tắc cố định (ca đầu tiên theo thứ tự test thỏa điều kiện): một ca gợi ý trúng, một ca gợi ý trượt và một ca không đủ bằng chứng. Ba ca này được trình bày ở mục 4.9; chúng chỉ để minh họa, không thay thế các tỷ lệ ở dưới.</p>
+<h4>5.10.1. Kết quả trên tập test</h4>
+<p><strong>[Kết quả] Dữ liệu và mẫu dùng để gợi ý.</strong></p>
+<ul>
+<li>Train có 56.774 chuỗi, test có 14.194 chuỗi.</li>
+<li>Có T = 80.812 ca kiểm tra, đúng bằng tổng (L − 1) trên các đường đi test. Trong đó 73.830 ca có đáp án là click tiến.</li>
+<li>Mẫu được khai phá trên train ở r = 0,2% (min_sup = 114). GSP và PrefixSpan cho cùng 1.063 mẫu.</li>
+<li>Baseline gợi ý United States, Europe, United Kingdom; khi trang hiện tại là một trong ba trang đó thì lấy thêm England.</li>
+</ul>
+<p><em>Toàn bộ ca (T = 80.812):</em></p>
+<table>
+<thead>
+<tr>
+<th>Phương án</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Hit@1</th>
+<th style="text-align: right;">Hit@3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline phổ biến</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">3,56% (2.876)</td>
+<td style="text-align: right;">6,51% (5.261)</td>
+</tr>
+<tr>
+<td>Gợi ý từ mẫu</td>
+<td style="text-align: right;">32,20% (26.024)</td>
+<td style="text-align: right;">5,86% (4.737)</td>
+<td style="text-align: right;">9,23% (7.457)</td>
+</tr>
+<tr>
+<td>Mẫu + bổ sung phổ biến</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8,40% (6.791)</td>
+<td style="text-align: right;">13,63% (11.014)</td>
+</tr>
+</tbody>
+</table>
+<p><em>Chỉ các ca đáp án là click tiến (T = 73.830):</em></p>
+<table>
+<thead>
+<tr>
+<th>Phương án</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Hit@1</th>
+<th style="text-align: right;">Hit@3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline phổ biến</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">3,44% (2.542)</td>
+<td style="text-align: right;">6,39% (4.721)</td>
+</tr>
+<tr>
+<td>Gợi ý từ mẫu</td>
+<td style="text-align: right;">32,83% (24.241)</td>
+<td style="text-align: right;">6,16% (4.548)</td>
+<td style="text-align: right;">9,71% (7.170)</td>
+</tr>
+<tr>
+<td>Mẫu + bổ sung phổ biến</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">8,61% (6.359)</td>
+<td style="text-align: right;">13,97% (10.315)</td>
+</tr>
+</tbody>
+</table>
+<p><em>Trên đúng tập ca mà gợi ý từ mẫu trả lời được:</em></p>
+<table>
+<thead>
+<tr>
+<th>Nhóm ca</th>
+<th style="text-align: right;">\(|\mathcal T_{\text{cov}}|\)</th>
+<th style="text-align: right;">Hit@3 gợi ý từ mẫu</th>
+<th style="text-align: right;">Hit@3 baseline trên cùng tập ca</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Toàn bộ</td>
+<td style="text-align: right;">26.024</td>
+<td style="text-align: right;">28,65% (7.457)</td>
+<td style="text-align: right;">7,41% (1.929)</td>
+</tr>
+<tr>
+<td>Click tiến</td>
+<td style="text-align: right;">24.241</td>
+<td style="text-align: right;">29,58% (7.170)</td>
+<td style="text-align: right;">7,23% (1.753)</td>
+</tr>
+</tbody>
+</table>
+<p>Trong các ca có gợi ý, ngữ cảnh được dùng gần như luôn là 1 trang: 24.494 ca dùng 1 trang, 1.371 ca dùng 2 trang, 159 ca dùng 3 trang. 54.788 ca không có gợi ý.</p>
+<p><em>Độ nhạy theo ngưỡng r (toàn bộ ca; Hit@3 của baseline là 6,51% ở mọi mức):</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">r</th>
+<th style="text-align: right;">min_sup</th>
+<th style="text-align: right;">Số mẫu</th>
+<th style="text-align: right;">Coverage</th>
+<th style="text-align: right;">Hit@3 từ mẫu</th>
+<th style="text-align: right;">Hit@3 mẫu + bổ sung</th>
+<th style="text-align: right;">Hit@3 trên ca có gợi ý: mẫu / baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1%</td>
+<td style="text-align: right;">568</td>
+<td style="text-align: right;">101</td>
+<td style="text-align: right;">3,28%</td>
+<td style="text-align: right;">0,72%</td>
+<td style="text-align: right;">6,87%</td>
+<td style="text-align: right;">21,86% / 12,59%</td>
+</tr>
+<tr>
+<td style="text-align: right;">0,5%</td>
+<td style="text-align: right;">284</td>
+<td style="text-align: right;">285</td>
+<td style="text-align: right;">16,51%</td>
+<td style="text-align: right;">3,61%</td>
+<td style="text-align: right;">8,94%</td>
+<td style="text-align: right;">21,88% / 8,05%</td>
+</tr>
+<tr>
+<td style="text-align: right;">0,2%</td>
+<td style="text-align: right;">114</td>
+<td style="text-align: right;">1.063</td>
+<td style="text-align: right;">32,20%</td>
+<td style="text-align: right;">9,23%</td>
+<td style="text-align: right;">13,63%</td>
+<td style="text-align: right;">28,65% / 7,41%</td>
+</tr>
+<tr>
+<td style="text-align: right;">0,1%</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">2.699</td>
+<td style="text-align: right;">49,27%</td>
+<td style="text-align: right;">14,53%</td>
+<td style="text-align: right;">17,96%</td>
+<td style="text-align: right;">29,48% / 6,88%</td>
+</tr>
+</tbody>
+</table>
+<p>Ở cả bốn mức, GSP và PrefixSpan cho cùng tập mẫu trên train.</p>
+<p><strong>Đọc kết quả.</strong></p>
+<ul>
+<li><strong>Mức chính r = 0,2%.</strong> Gợi ý từ mẫu chỉ trả lời được khoảng một phần ba số ca. Khi đã trả lời, Hit@3 là 28,65%, khoảng 3,9 lần baseline trên cùng tập ca (7,41%). Tính trên toàn bộ ca, với ca không có gợi ý tính là trượt, Hit@3 là 9,23% so với 6,51% của baseline. Phương án bổ sung phổ biến đạt 13,63%.</li>
+<li><strong>Click tiến.</strong> Kết quả trên riêng các ca click tiến còn nhỉnh hơn một chút so với toàn bộ ca. Như vậy các lượt quay lại không làm thổi phồng kết quả.</li>
+<li><strong>Độ dài ngữ cảnh.</strong> Ngữ cảnh 2–3 trang hiếm khi đạt C(h) ≥ 5, nên khoảng 94% ca có gợi ý dùng ngữ cảnh 1 trang. Trên dữ liệu thưa này, quy tắc gợi ý thực chất gần với “trang tiếp theo phổ biến sau trang hiện tại”, có lọc bằng mẫu phổ biến (mục 4.5).</li>
+<li><strong>Độ nhạy.</strong> Hạ r làm coverage tăng từ 3,28% lên 49,27% và Hit@3 trên toàn bộ ca tăng từ 0,72% lên 14,53%, vì nhiều cặp ⟨h,y⟩ vượt ngưỡng hơn. Trong khi đó, Hit@3 trên các ca có gợi ý chỉ dao động trong khoảng 22–29%. Ở r = 1% chỉ có 8 mẫu hai trang, nên gợi ý từ mẫu gần như không dùng được. Đây là cái giá của support cao đã nêu ở mục 6.4.</li>
+</ul>
+<h2>6. Giá trị, hạn chế và phạm vi kết luận</h2>
+<h3>6.1. Giá trị về mặt phương pháp</h3>
+<p>Ứng dụng nối một bài toán hành vi cụ thể với cơ sở dữ liệu chuỗi: mỗi trang có mã, mỗi lượt ghé có vị trí và mỗi lượt chơi có ranh giới. Điều này giúp giải thích rõ thuật toán nhận gì và mẫu thu được mô tả điều gì.</p>
+<p>Hai cách khai phá cùng tập mẫu tạo điều kiện quan sát chi phí tìm kiếm. GSP thể hiện cách sinh và cắt tỉa ứng viên; PrefixSpan thể hiện cách tập trung vào dữ liệu liên quan tới tiền tố. Khi kết hợp giải thích cơ chế với số đo thực nghiệm, bài có thể chỉ ra trong điều kiện nào một cách tiếp cận tiết kiệm tài nguyên hơn.</p>
+<h3>6.2. Giá trị đối với phân tích điều hướng</h3>
+<p>Các mẫu bằng tên trang và support có thể giúp nhận diện đường đi thường gặp, các trang xuất hiện trong nhiều lịch sử và những lần quay lại có tính lặp. Đây là thông tin mô tả để tiếp tục đặt câu hỏi về hành vi và cấu trúc website.</p>
+<p>Bước gợi ý minh họa cách dùng mẫu như bằng chứng cho một lựa chọn tiếp theo. Việc hiển thị ngữ cảnh, số quan sát và tỷ lệ chuyển tiếp giúp người đọc hiểu nguồn gốc gợi ý. Trường hợp không đủ dữ liệu cũng là một phần của đầu ra có ý nghĩa.</p>
+<h3>6.3. Tính đại diện của dữ liệu</h3>
+<p>Wikispeedia là trò chơi có mục tiêu tìm tới một bài viết đích. Một trang có thể được ghé vì nó là cầu nối thuận tiện tới đích, không nhất thiết vì người dùng quan tâm tới nội dung của nó. Dataset cũng chỉ dùng một phần Wikipedia, nên cấu trúc lựa chọn khác với toàn bộ website.</p>
+<p>Vì vậy, kết quả cần được mô tả là mẫu điều hướng trong Wikispeedia. Không suy ngay thành sở thích của toàn bộ người đọc Wikipedia hoặc hành vi của mọi website. Thiết kế hiện tại không dùng đích được giao làm đầu vào nên cũng không tuyên bố tìm được đường tối ưu tới đích.</p>
+<h3>6.4. Dữ liệu thưa và tác động của support</h3>
+<p>Nhiều trang chỉ xuất hiện trong ít đường đi, nên ngữ cảnh dài dễ thiếu bằng chứng. Support cao có thể bỏ qua đường đi hiếm nhưng hợp lý; support thấp có thể làm khối lượng mẫu tăng và giữ các mẫu có ít quan sát.</p>
+<p>Không có một ngưỡng support được bảo đảm tốt cho mọi mục tiêu. Bài cần công bố ngưỡng, phạm vi mẫu và số chuỗi hỗ trợ, đồng thời thừa nhận rằng những lịch sử chưa đủ bằng chứng sẽ không nhận được gợi ý.</p>
+<p>Mẫu dài hơn cung cấp ngữ cảnh cụ thể hơn nhưng có thể ít gặp hơn. Vì vậy, độ dài không tự là thước đo hữu ích. Việc ưu tiên ngữ cảnh dài cần đi kèm điều kiện đủ quan sát và cách lùi về ngữ cảnh ngắn.</p>
+<h3>6.5. Giới hạn của suy luận từ mẫu</h3>
+<p>Support mô tả mức phổ biến, không phải độ chính xác, quan hệ nhân quả hoặc bằng chứng rằng một hành vi nên được khuyến khích. Mẫu có khoảng cách cũng không bảo đảm từng bước chuyển tiếp trực tiếp.</p>
+<p>Điểm gợi ý tính từ chuyển tiếp lịch sử có thể chịu ảnh hưởng của độ phổ biến trang, mục tiêu trò chơi và lượng quan sát ít. Đánh giá trên tập test ở mục 5.10 cho biết khả năng dự đoán trên các lượt chơi giữ lại của cùng dataset. Nó không bảo đảm kết quả tương tự trên website khác hoặc với người đọc tự do. Một ví dụ gợi ý đúng hoặc một mẫu nghe hợp lý không thay thế các tỷ lệ đó.</p>
+<p>Trong Wikispeedia, người chơi biết trang đích nhưng bài không dùng trang đích làm đầu vào. Vì vậy, hệ thống chỉ dự đoán từ lịch sử và có thể trượt ở những bước người chơi rẽ theo đích riêng của lượt chơi. Đây là giới hạn của bài toán được đặt ra, không phải lỗi của thuật toán khai phá.</p>
+<h3>6.6. Giới hạn của kết luận hiệu năng</h3>
+<p>Thời gian và bộ nhớ phụ thuộc dữ liệu, tham số, bản triển khai, môi trường và phạm vi đo. Kết luận chỉ áp dụng cho những điều kiện đã kiểm tra. Thực nghiệm một dataset không đủ để khẳng định một thuật toán luôn tốt hơn trên mọi cơ sở dữ liệu chuỗi.</p>
+<p>Hai bản cài đặt Python do bài tự viết. Thời gian tuyệt đối vì thế không so trực tiếp được với thư viện Java/C++ như SPMF hay với số liệu của paper. Điều có thể so là chênh lệch giữa hai chiến lược khi cùng ngôn ngữ, cùng cấu trúc dữ liệu và cùng phạm vi đo. Bộ nhớ là đỉnh cấp phát Python, không phải tổng RAM của tiến trình. Bản cài đặt chỉ hỗ trợ event một item, đúng với dữ liệu của bài, nên không đại diện cho trường hợp chuỗi itemset tổng quát.</p>
+<p>Độ dài tối đa 4 cũng giới hạn bài toán. Nếu thay đổi giới hạn này, số mẫu và chi phí có thể đổi. Nếu một nhánh không hoàn thành ở cấu hình nặng, kết luận phù hợp là nhánh đó vượt giới hạn trong môi trường đã dùng; không suy ra đầu ra của nó kém chính xác hơn.</p>
+<p>Mọi cấu hình đã đo đều chạy dưới 2 giây. Ở thang thời gian này, phần đọc tệp, giống nhau cho hai nhánh, không nhỏ. Đo riêng, bước đọc mất khoảng 0,011 giây với 5.000 chuỗi, 0,044 giây với 20.000 chuỗi và 0,149 giây với 70.968 chuỗi (<code>ket-qua/phan_tich_phu.json</code>). Với lượt ngắn nhất ở 20.000 chuỗi (PrefixSpan, r = 1%), phần đọc chiếm khoảng một phần tư thời gian đo. Vì vậy R_T ở các cấu hình nhẹ đánh giá thấp chênh lệch của riêng bước khai phá. Kết quả không nói gì về những cấu hình nặng hơn nhiều, chẳng hạn mẫu dài hơn 4 hoặc support thấp hơn 0,1%, vì bài không đo các cấu hình đó.</p>
+<h3>6.7. Điều có thể khẳng định sau thực nghiệm</h3>
+<p><strong>Có thể khẳng định, trong phạm vi đã đo:</strong></p>
+<ol>
+<li><strong>Tính đúng.</strong> Hai bản cài đặt cho cùng tập (mẫu, sup) ở mọi cấu hình. Kết quả trùng với cách đếm vét cạn trên 600 cơ sở dữ liệu ngẫu nhiên và trùng với SPMF trên 4 cấu hình dữ liệu thật (mục 3.7).</li>
+<li><strong>Thời gian.</strong> Trên Wikispeedia với mẫu dài 1–4, PrefixSpan nhanh hơn GSP ở cả 8 cấu hình, R_T = 1,20–3,47. Khoảng cách tăng khi r giảm, đi cùng sự tăng của số ứng viên mức 2 mà GSP phải sinh: 9.216 → 1.468.944. Khoảng cách giảm khi |D| tăng ở r cố định (mục 5.9.2).</li>
+<li><strong>Bộ nhớ.</strong> GSP dùng nhiều bộ nhớ hơn ở 7/8 cấu hình, chênh nhiều nhất khi support thấp hoặc dữ liệu nhỏ (R_M tới 16,71). Ở r = 1%, bản PrefixSpan của bài dùng nhiều bộ nhớ hơn (R_M = 0,70).</li>
+<li><strong>Mẫu.</strong> Các mẫu có sup cao nhất chủ yếu phản ánh cặp (trang xuất phát, trang đích) của trò chơi. Vẫn có mẫu điều hướng giữa đường đi cho thấy thứ tự có ý nghĩa, như North America → United States (694) so với chiều ngược (452). Thao tác quay lại đóng góp phần lớn bằng chứng của mẫu lặp United States → United States (mục 4.9).</li>
+<li><strong>Gợi ý.</strong> Trên tập test, gợi ý từ mẫu trả lời được 32,20% số ca. Khi trả lời, Hit@3 = 28,65% so với 7,41% của baseline trên cùng tập ca. Trên toàn bộ ca, Hit@3 = 9,23% (bổ sung phổ biến: 13,63%) so với 6,51% của baseline (mục 5.10.1).</li>
+</ol>
+<p><strong>Không khẳng định:</strong></p>
+<ul>
+<li>GSP hay PrefixSpan nhanh hơn trên dữ liệu hoặc cấu hình khác.</li>
+<li>Gợi ý dựa trên mẫu tốt hơn mô hình Markov hay mô hình tuần tự khác.</li>
+<li>Chức năng gợi ý giúp người dùng thật tìm thông tin nhanh hơn.</li>
+<li>Mẫu tìm được phản ánh sở thích đọc Wikipedia nói chung.</li>
+</ul>
+<p>Notebook <code>thuc-nghiem/Ung-dung-2-Wikispeedia-GSP-PrefixSpan.ipynb</code> cho phép chạy lại toàn bộ trên Kaggle. Thời gian tuyệt đối trên máy khác sẽ khác; điều cần lặp lại được là tập mẫu, các tỷ lệ đánh giá và chiều của chênh lệch.</p>
+<h2>Tài liệu tham khảo và nguồn số liệu</h2>
+<p><strong>Dữ liệu</strong></p>
+<ol>
+<li><a href="https://snap.stanford.edu/data/wikispeedia.html">Stanford SNAP — Wikispeedia navigation paths</a>: bối cảnh thu thập, đường đi hoàn thành/chưa hoàn thành và danh mục bài viết. Đã đọc trang mô tả và dùng archive gốc.</li>
+<li>R. West, J. Leskovec. <em>Human Wayfinding in Information Networks.</em> WWW 2012. <a href="https://infolab.stanford.edu/~west1/pubs/West-Leskovec_WWW-12.pdf">PDF</a>. Nguồn của dataset theo SNAP; trích dẫn khi dùng dữ liệu, chưa đọc toàn văn.</li>
+<li>R. West, J. Pineau, D. Precup. <em>Wikispeedia: An Online Game for Inferring Semantic Distances between Concepts.</em> IJCAI 2009. <a href="https://infolab.stanford.edu/~west1/pubs/West-Pineau-Precup_IJCAI-09.pdf">PDF</a>. Nguồn của dataset theo SNAP; trích dẫn khi dùng dữ liệu, chưa đọc toàn văn.</li>
+<li><a href="../Ban-giao-Wikispeedia-2026-11-01/03_Khao_sat/Khao-sat-va-de-xuat-chon-dataset.md">Báo cáo khảo sát MSNBC và Wikispeedia</a>: phương pháp khảo sát toàn bộ dữ liệu và lý do chọn Wikispeedia.</li>
+<li><a href="../Ban-giao-Wikispeedia-2026-11-01/03_Khao_sat/structure_statistics.json">Số liệu khảo sát chi tiết</a>: các thống kê về độ dài, trang xuất hiện, quay lại và chuyển tiếp liền kề. Đây là kết quả tính từ dữ liệu gốc, không phải đầu ra hai thuật toán khai phá.</li>
+</ol>
+<p><strong>Thuật toán</strong></p>
+<ol start="6">
+<li>R. Srikant, R. Agrawal. <em>Mining Sequential Patterns: Generalizations and Performance Improvements.</em> EDBT 1996, tr. 3–17. <a href="https://www.philippe-fournier-viger.com/spmf/GSP96.pdf">PDF do SPMF dẫn</a>. Đã đọc toàn văn (bản EDBT, 15 trang). Các phần được dùng trong tài liệu: mục 2 (định nghĩa chuỗi con và support); mục 2.1 (phát biểu bài toán); mục 3 (cấu trúc nhiều lượt quét); mục 3.1 (nối, cắt tỉa, contiguous subsequence); mục 3.2 (đếm ứng viên bằng hash tree); mục 4 (tóm tắt hiệu năng so với AprioriAll).</li>
+<li>J. Pei, J. Han, B. Mortazavi-Asl, J. Wang, H. Pinto, Q. Chen, U. Dayal, M.-C. Hsu. <em>Mining Sequential Patterns by Pattern-Growth: The PrefixSpan Approach.</em> IEEE TKDE 16(10), 2004. <a href="https://www.philippe-fournier-viger.com/spmf/prefixspan.pdf">PDF do SPMF dẫn</a>. Đã đọc toàn văn (17 trang). Các phần được dùng trong tài liệu: mục 2.1 (định nghĩa chuỗi con và support); mục 2.2 (Ví dụ 2, 51 ứng viên GSP); mục 3.2 (tiền tố, hậu tố, cơ sở dữ liệu chiếu, Bổ đề 3.2, Ví dụ 4, Thuật toán 1); mục 3.3 (pseudo-projection và Bảng 3); mục 4.1 (thí nghiệm, gồm dataset Gazelle và phép so bộ nhớ). Các biểu đồ hiệu năng (Hình 2–16) chỉ được đọc qua phần mô tả trong bài, không đọc số trên đồ thị.</li>
+<li><a href="https://www.philippe-fournier-viger.com/spmf/GSP.php">SPMF — GSP</a>: định dạng dữ liệu, tham số và giới hạn gap/window của bản cài đặt. Trang này ghi năm 1992 ở phần giới thiệu nhưng dẫn paper năm 1996; tài liệu này dùng năm 1996 theo paper.</li>
+<li><a href="https://www.philippe-fournier-viger.com/spmf/PrefixSpan.php">SPMF — PrefixSpan</a>: cơ sở dữ liệu chuỗi, support và định nghĩa mẫu có thứ tự.</li>
+</ol>
+<p>Các chuỗi A, B, C, D, X và bảy mẫu tính tay trong tài liệu là ví dụ minh họa tự dựng. Quy tắc gợi ý ở mục 4.7, cách đánh giá ở mục 5.10 và cách cài đặt ở mục 3.7 là thiết kế của bài, không phải phương pháp được các nguồn trên công bố.</p>
+<p><strong>Code, dữ liệu và kết quả của bài</strong> (thư mục <code>thuc-nghiem/</code>)</p>
+<ol start="10">
+<li><code>spm_wiki.py</code>: đọc archive và khôi phục <code>&lt;</code>, chuẩn bị dữ liệu, GSP, PrefixSpan, cách đếm vét cạn, hàm đo một lượt, bộ gợi ý và đánh giá.</li>
+<li><code>kiem_tra_tinh_dung.py</code>: bốn lớp kiểm tra tính đúng; kết quả trong <code>ket-qua/kiem_tra_tinh_dung.json</code>.</li>
+<li><code>chay_do.py</code> và <code>tong_hop.py</code>: lịch đo, tổng hợp bảng và biểu đồ. Kết quả thô từng lượt trong <code>ket-qua/do_chinh/runs.jsonl</code>; thông tin máy trong <code>ket-qua/do_chinh/machine.json</code>; tệp mẫu đầu ra của từng cấu hình trong <code>ket-qua/do_chinh/patterns/</code>. Lượt chạy thử nằm trong <code>ket-qua/chay_thu/</code>.</li>
+<li><code>danh_gia.py</code>: đánh giá trên tập test, ba ca minh họa và các mẫu tiêu biểu; kết quả trong <code>ket-qua/danh_gia/danh_gia.json</code>. <code>phan_tich_phu.py</code>: các số liệu phụ cho phần diễn giải, gồm chi phí chỉ đọc dữ liệu, trang xuất phát/đích của các cặp mẫu, tỷ lệ quay lại của mẫu United States → United States và đường đi đầy đủ của ca minh họa; kết quả trong <code>ket-qua/phan_tich_phu.json</code>.</li>
+<li><code>data/</code>: <code>sequences.tsv</code> (70.968 chuỗi theo thứ tự đã xáo trộn, kèm cờ quay lại), <code>articles.tsv</code> (mã → tên trang) và <code>prepare_info.json</code>.</li>
+<li><code>Ung-dung-2-Wikispeedia-GSP-PrefixSpan.ipynb</code>: notebook chạy lại toàn bộ trên Kaggle.</li>
+</ol>
+<p>Mọi số liệu gắn nhãn [Kết quả] trong tài liệu được lấy từ các tệp kết quả trên.</p></main></body></html>

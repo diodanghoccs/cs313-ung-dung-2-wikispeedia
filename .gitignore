@@ -1,0 +1,14 @@
+# Phần bổ sung BMS: dữ liệu đã chuyển đổi, tệp mẫu và bản ghi từng lượt (tạo lại được, xem README)
+thuc-nghiem/bo-sung-bms/data/
+thuc-nghiem/bo-sung-bms/ket-qua/patterns/
+thuc-nghiem/bo-sung-bms/ket-qua/tmp/
+
+# Tệp do notion-import/tao_ban_notion.py sinh ra
+notion-import/*.zip
+notion-import/hinh/
+notion-import/Ung-dung-2-Wikispeedia.md
+
+# Python, Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

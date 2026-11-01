@@ -1,0 +1,16 @@
+{
+  "seed": 20261101,
+  "raw_paths": 76193,
+  "raw_finished": 51318,
+  "raw_unfinished": 24875,
+  "unresolvable": 0,
+  "dropped_len1": 5225,
+  "kept": 70968,
+  "visits": 470848,
+  "back_visits": 33468,
+  "distinct_pages": 4179,
+  "mean_len": 6.634652237628226,
+  "max_len": 435,
+  "n_train": 56774,
+  "n_test": 14194
+}

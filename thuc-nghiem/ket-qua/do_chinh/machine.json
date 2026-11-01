@@ -1,0 +1,14 @@
+{
+  "machine": {
+    "python": "3.10.20 | packaged by Anaconda, Inc. | (main, Mar 11 2026, 17:42:35) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_count": 24,
+    "cpu": "Intel(R) Core(TM) i7-14650HX",
+    "ram_bytes": 34053414912
+  },
+  "timeout_s": 600.0,
+  "mode": "chinh",
+  "full_n": 70968,
+  "started": "2026-11-01 14:39:33",
+  "finished": "2026-11-01 14:40:50"
+}

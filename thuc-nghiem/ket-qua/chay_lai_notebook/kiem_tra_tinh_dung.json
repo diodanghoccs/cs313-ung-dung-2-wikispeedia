@@ -1,0 +1,30 @@
+{
+  "layer1": {
+    "min_sup == 2": true,
+    "GSP == 7 mẫu tính tay": true,
+    "PrefixSpan == 7 mẫu tính tay": true,
+    "GSP sinh 9 ứng viên mức 2": true,
+    "GSP sinh 1 ứng viên mức 3": true
+  },
+  "layer2": {
+    "<A,A> có trong A→B→A": true,
+    "<A,A> không có trong A→B": true,
+    "chuỗi lặp chỉ đóng góp 1 lần": true,
+    "mẫu có khoảng cách <A,C>": true,
+    "đường đi trùng nhau vẫn đếm 2": true,
+    "giới hạn độ dài 2": true,
+    "giới hạn độ dài 1": true,
+    "ngưỡng quá cao cho tập rỗng": true,
+    "ceil(0,07 × 100) = 7 (chuỗi)": true,
+    "ceil(0,07 × 100) = 7 (số thực)": true,
+    "ceil(0,002 × 20.000) = 40": true,
+    "ceil(0,002 × 56.774) = 114": true,
+    "ceil(0,001 × 5.000) = 5": true
+  },
+  "layer3": {
+    "600 CSDL ngẫu nhiên: GSP == PrefixSpan == vét cạn": true,
+    "_total_reference_patterns": 19189,
+    "_failures": []
+  },
+  "all_passed": true
+}

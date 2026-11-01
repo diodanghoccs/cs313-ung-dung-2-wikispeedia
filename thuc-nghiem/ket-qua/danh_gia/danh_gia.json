@@ -1,0 +1,1031 @@
+{
+  "n_train": 56774,
+  "n_test": 14194,
+  "rules": {
+    "max_context": 3,
+    "min_C_h": 5,
+    "min_C_hy": 2,
+    "max_len": 4
+  },
+  "by_ratio": {
+    "0.002": {
+      "all": {
+        "T": 80812,
+        "baseline": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2876,
+            "den": 80812,
+            "value": 0.03558877394446369
+          },
+          "hit3": {
+            "num": 5261,
+            "den": 80812,
+            "value": 0.06510171756669801
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 26024,
+            "den": 80812,
+            "value": 0.3220313814779983
+          },
+          "hit1": {
+            "num": 4737,
+            "den": 80812,
+            "value": 0.05861753204969559
+          },
+          "hit3": {
+            "num": 7457,
+            "den": 80812,
+            "value": 0.09227589961886848
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 6791,
+            "den": 80812,
+            "value": 0.08403454932435776
+          },
+          "hit3": {
+            "num": 11014,
+            "den": 80812,
+            "value": 0.13629163985546702
+          }
+        },
+        "covered_subset": {
+          "T_cov": 26024,
+          "pattern_hit3": {
+            "num": 7457,
+            "den": 26024,
+            "value": 0.286543190900707
+          },
+          "baseline_hit3": {
+            "num": 1929,
+            "den": 26024,
+            "value": 0.0741238856440209
+          }
+        }
+      },
+      "forward": {
+        "T": 73830,
+        "baseline": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2542,
+            "den": 73830,
+            "value": 0.03443044832723825
+          },
+          "hit3": {
+            "num": 4721,
+            "den": 73830,
+            "value": 0.06394419612623595
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 24241,
+            "den": 73830,
+            "value": 0.3283353650277665
+          },
+          "hit1": {
+            "num": 4548,
+            "den": 73830,
+            "value": 0.06160097521332791
+          },
+          "hit3": {
+            "num": 7170,
+            "den": 73830,
+            "value": 0.0971149939049167
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 6359,
+            "den": 73830,
+            "value": 0.08613029933631315
+          },
+          "hit3": {
+            "num": 10315,
+            "den": 73830,
+            "value": 0.13971285385344712
+          }
+        },
+        "covered_subset": {
+          "T_cov": 24241,
+          "pattern_hit3": {
+            "num": 7170,
+            "den": 24241,
+            "value": 0.29577987706777775
+          },
+          "baseline_hit3": {
+            "num": 1753,
+            "den": 24241,
+            "value": 0.07231549853553897
+          }
+        }
+      },
+      "context_len": {
+        "0": 54788,
+        "1": 24494,
+        "2": 1371,
+        "3": 159
+      },
+      "min_sup": 114,
+      "n_patterns": 1063,
+      "by_length": {
+        "1": 619,
+        "2": 345,
+        "3": 80,
+        "4": 19
+      },
+      "algos_checked": [
+        "gsp",
+        "prefixspan"
+      ],
+      "outputs_identical": true,
+      "mining_seconds_untimed_context": {
+        "gsp": 1.2955408999987412,
+        "prefixspan": 0.8356638999994175
+      },
+      "eval_seconds": 4.4219637000005605,
+      "baseline_pages": [
+        "United_States",
+        "Europe",
+        "United_Kingdom",
+        "England"
+      ],
+      "demo_cases": {
+        "khong_du_bang_chung": {
+          "sid": "F45426",
+          "t": 1,
+          "history": [
+            "Pride_and_Prejudice"
+          ],
+          "answer": "English_language",
+          "answer_is_forward_click": true,
+          "context": [],
+          "tried": [
+            {
+              "context": [
+                "Pride_and_Prejudice"
+              ],
+              "c_h": 27,
+              "qualified_candidates": 0
+            }
+          ],
+          "suggestions": []
+        },
+        "truot": {
+          "sid": "F45426",
+          "t": 2,
+          "history": [
+            "Pride_and_Prejudice",
+            "English_language"
+          ],
+          "answer": "15th_century",
+          "answer_is_forward_click": true,
+          "context": [
+            "English_language"
+          ],
+          "tried": [
+            {
+              "context": [
+                "Pride_and_Prejudice",
+                "English_language"
+              ],
+              "c_h": 4,
+              "qualified_candidates": 0
+            },
+            {
+              "context": [
+                "English_language"
+              ],
+              "c_h": 1605,
+              "qualified_candidates": 3
+            }
+          ],
+          "suggestions": [
+            {
+              "page": "United_States",
+              "c_h": 1605,
+              "c_hy": 349,
+              "score": 0.21744548286604362,
+              "sup": 395
+            },
+            {
+              "page": "England",
+              "c_h": 1605,
+              "c_hy": 266,
+              "score": 0.16573208722741434,
+              "sup": 298
+            },
+            {
+              "page": "United_Kingdom",
+              "c_h": 1605,
+              "c_hy": 77,
+              "score": 0.047975077881619935,
+              "sup": 140
+            }
+          ]
+        },
+        "trung": {
+          "sid": "F47642",
+          "t": 4,
+          "history": [
+            "Super_Mario_Bros.",
+            "Japan",
+            "Nazi_Germany",
+            "World_War_II"
+          ],
+          "answer": "Adolf_Hitler",
+          "answer_is_forward_click": true,
+          "context": [
+            "World_War_II"
+          ],
+          "tried": [
+            {
+              "context": [
+                "Japan",
+                "Nazi_Germany",
+                "World_War_II"
+              ],
+              "c_h": 0,
+              "qualified_candidates": 0
+            },
+            {
+              "context": [
+                "Nazi_Germany",
+                "World_War_II"
+              ],
+              "c_h": 35,
+              "qualified_candidates": 0
+            },
+            {
+              "context": [
+                "World_War_II"
+              ],
+              "c_h": 2394,
+              "qualified_candidates": 6
+            }
+          ],
+          "suggestions": [
+            {
+              "page": "Adolf_Hitler",
+              "c_h": 2394,
+              "c_hy": 260,
+              "score": 0.1086048454469507,
+              "sup": 281
+            },
+            {
+              "page": "United_States",
+              "c_h": 2394,
+              "c_hy": 255,
+              "score": 0.10651629072681704,
+              "sup": 335
+            },
+            {
+              "page": "Nuclear_weapon",
+              "c_h": 2394,
+              "c_hy": 161,
+              "score": 0.06725146198830409,
+              "sup": 165
+            }
+          ]
+        }
+      },
+      "example_patterns": {
+        "len2": [
+          {
+            "pattern": "United_States → United_States",
+            "sup": 1046
+          },
+          {
+            "pattern": "Asteroid → Viking",
+            "sup": 852
+          },
+          {
+            "pattern": "Brain → Telephone",
+            "sup": 840
+          },
+          {
+            "pattern": "Theatre → Zebra",
+            "sup": 718
+          },
+          {
+            "pattern": "North_America → United_States",
+            "sup": 694
+          },
+          {
+            "pattern": "Animal → Mammal",
+            "sup": 643
+          },
+          {
+            "pattern": "Brain → Computer_science",
+            "sup": 599
+          },
+          {
+            "pattern": "Europe → United_Kingdom",
+            "sup": 598
+          },
+          {
+            "pattern": "United_Kingdom → England",
+            "sup": 556
+          },
+          {
+            "pattern": "Theatre → Africa",
+            "sup": 541
+          }
+        ],
+        "len3": [
+          {
+            "pattern": "Brain → Communication → Telephone",
+            "sup": 409
+          },
+          {
+            "pattern": "Theatre → Mammal → Zebra",
+            "sup": 384
+          },
+          {
+            "pattern": "Brain → Computer_science → Telephone",
+            "sup": 380
+          },
+          {
+            "pattern": "Theatre → Lion → Zebra",
+            "sup": 347
+          },
+          {
+            "pattern": "Theatre → Africa → Zebra",
+            "sup": 343
+          },
+          {
+            "pattern": "Asteroid → Norway → Viking",
+            "sup": 335
+          },
+          {
+            "pattern": "Asteroid → Earth → Viking",
+            "sup": 310
+          },
+          {
+            "pattern": "Pyramid → Seed → Bean",
+            "sup": 285
+          },
+          {
+            "pattern": "United_States → United_States → United_States",
+            "sup": 283
+          },
+          {
+            "pattern": "Brain → Computer_science → Internet",
+            "sup": 260
+          }
+        ],
+        "len4": [
+          {
+            "pattern": "Theatre → Animal → Mammal → Zebra",
+            "sup": 227
+          },
+          {
+            "pattern": "Theatre → Africa → Lion → Zebra",
+            "sup": 226
+          },
+          {
+            "pattern": "Brain → Computer_science → Communication → Telephone",
+            "sup": 205
+          },
+          {
+            "pattern": "Brain → Computer_science → Information → Telephone",
+            "sup": 197
+          },
+          {
+            "pattern": "Brain → Information → Communication → Telephone",
+            "sup": 193
+          },
+          {
+            "pattern": "Brain → Computer_science → Information → Communication",
+            "sup": 186
+          },
+          {
+            "pattern": "Computer_science → Information → Communication → Telephone",
+            "sup": 182
+          },
+          {
+            "pattern": "Asteroid → Earth → Europe → Viking",
+            "sup": 170
+          },
+          {
+            "pattern": "Asteroid → Europe → Norway → Viking",
+            "sup": 158
+          },
+          {
+            "pattern": "Brain → Computer_science → Internet → Telephone",
+            "sup": 152
+          }
+        ],
+        "order": [
+          {
+            "pattern": "Asteroid → Viking",
+            "sup": 852,
+            "reverse_sup": 0
+          },
+          {
+            "pattern": "Brain → Telephone",
+            "sup": 840,
+            "reverse_sup": 0
+          },
+          {
+            "pattern": "Theatre → Zebra",
+            "sup": 718,
+            "reverse_sup": 0
+          },
+          {
+            "pattern": "North_America → United_States",
+            "sup": 694,
+            "reverse_sup": 452
+          },
+          {
+            "pattern": "Animal → Mammal",
+            "sup": 643,
+            "reverse_sup": 236
+          },
+          {
+            "pattern": "Brain → Computer_science",
+            "sup": 599,
+            "reverse_sup": 0
+          },
+          {
+            "pattern": "Europe → United_Kingdom",
+            "sup": 598,
+            "reverse_sup": 340
+          },
+          {
+            "pattern": "United_Kingdom → England",
+            "sup": 556,
+            "reverse_sup": 312
+          },
+          {
+            "pattern": "Theatre → Africa",
+            "sup": 541,
+            "reverse_sup": 0
+          },
+          {
+            "pattern": "United_States → President_of_the_United_States",
+            "sup": 541,
+            "reverse_sup": 0
+          }
+        ],
+        "return_xyx": [],
+        "repeat_xx": [
+          {
+            "pattern": "United_States → United_States",
+            "sup": 1046
+          },
+          {
+            "pattern": "United_Kingdom → United_Kingdom",
+            "sup": 421
+          },
+          {
+            "pattern": "England → England",
+            "sup": 335
+          },
+          {
+            "pattern": "Europe → Europe",
+            "sup": 323
+          },
+          {
+            "pattern": "Africa → Africa",
+            "sup": 288
+          },
+          {
+            "pattern": "Mammal → Mammal",
+            "sup": 228
+          },
+          {
+            "pattern": "Earth → Earth",
+            "sup": 215
+          },
+          {
+            "pattern": "Plant → Plant",
+            "sup": 215
+          },
+          {
+            "pattern": "Human → Human",
+            "sup": 188
+          },
+          {
+            "pattern": "Animal → Animal",
+            "sup": 176
+          }
+        ]
+      }
+    },
+    "0.01": {
+      "all": {
+        "T": 80812,
+        "baseline": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2876,
+            "den": 80812,
+            "value": 0.03558877394446369
+          },
+          "hit3": {
+            "num": 5261,
+            "den": 80812,
+            "value": 0.06510171756669801
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 2653,
+            "den": 80812,
+            "value": 0.03282928277978518
+          },
+          "hit1": {
+            "num": 580,
+            "den": 80812,
+            "value": 0.007177151908132455
+          },
+          "hit3": {
+            "num": 580,
+            "den": 80812,
+            "value": 0.007177151908132455
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 3293,
+            "den": 80812,
+            "value": 0.040748898678414094
+          },
+          "hit3": {
+            "num": 5551,
+            "den": 80812,
+            "value": 0.06869029352076424
+          }
+        },
+        "covered_subset": {
+          "T_cov": 2653,
+          "pattern_hit3": {
+            "num": 580,
+            "den": 2653,
+            "value": 0.2186204297022239
+          },
+          "baseline_hit3": {
+            "num": 334,
+            "den": 2653,
+            "value": 0.12589521296645306
+          }
+        }
+      },
+      "forward": {
+        "T": 73830,
+        "baseline": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2542,
+            "den": 73830,
+            "value": 0.03443044832723825
+          },
+          "hit3": {
+            "num": 4721,
+            "den": 73830,
+            "value": 0.06394419612623595
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 2510,
+            "den": 73830,
+            "value": 0.033997020181498035
+          },
+          "hit1": {
+            "num": 550,
+            "den": 73830,
+            "value": 0.007449546254909928
+          },
+          "hit3": {
+            "num": 550,
+            "den": 73830,
+            "value": 0.007449546254909928
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2944,
+            "den": 73830,
+            "value": 0.03987538940809969
+          },
+          "hit3": {
+            "num": 4997,
+            "den": 73830,
+            "value": 0.0676825138832453
+          }
+        },
+        "covered_subset": {
+          "T_cov": 2510,
+          "pattern_hit3": {
+            "num": 550,
+            "den": 2510,
+            "value": 0.21912350597609562
+          },
+          "baseline_hit3": {
+            "num": 315,
+            "den": 2510,
+            "value": 0.1254980079681275
+          }
+        }
+      },
+      "context_len": {
+        "0": 78159,
+        "1": 2653
+      },
+      "min_sup": 568,
+      "n_patterns": 101,
+      "by_length": {
+        "1": 93,
+        "2": 8
+      },
+      "algos_checked": [
+        "gsp",
+        "prefixspan"
+      ],
+      "outputs_identical": true,
+      "mining_seconds_untimed_context": {
+        "gsp": 0.4754267999996955,
+        "prefixspan": 0.39268409999931464
+      },
+      "eval_seconds": 4.098308000000543,
+      "baseline_pages": [
+        "United_States",
+        "Europe",
+        "United_Kingdom",
+        "England"
+      ]
+    },
+    "0.005": {
+      "all": {
+        "T": 80812,
+        "baseline": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2876,
+            "den": 80812,
+            "value": 0.03558877394446369
+          },
+          "hit3": {
+            "num": 5261,
+            "den": 80812,
+            "value": 0.06510171756669801
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 13343,
+            "den": 80812,
+            "value": 0.1651116170865713
+          },
+          "hit1": {
+            "num": 2162,
+            "den": 80812,
+            "value": 0.02675345245755581
+          },
+          "hit3": {
+            "num": 2919,
+            "den": 80812,
+            "value": 0.036120873137652824
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 4610,
+            "den": 80812,
+            "value": 0.05704598326981141
+          },
+          "hit3": {
+            "num": 7226,
+            "den": 80812,
+            "value": 0.08941741325545711
+          }
+        },
+        "covered_subset": {
+          "T_cov": 13343,
+          "pattern_hit3": {
+            "num": 2919,
+            "den": 13343,
+            "value": 0.21876639436408604
+          },
+          "baseline_hit3": {
+            "num": 1074,
+            "den": 13343,
+            "value": 0.08049164355842015
+          }
+        }
+      },
+      "forward": {
+        "T": 73830,
+        "baseline": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2542,
+            "den": 73830,
+            "value": 0.03443044832723825
+          },
+          "hit3": {
+            "num": 4721,
+            "den": 73830,
+            "value": 0.06394419612623595
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 12594,
+            "den": 73830,
+            "value": 0.17058106460788297
+          },
+          "hit1": {
+            "num": 2112,
+            "den": 73830,
+            "value": 0.028606257618854124
+          },
+          "hit3": {
+            "num": 2826,
+            "den": 73830,
+            "value": 0.03827712312068265
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 4256,
+            "den": 73830,
+            "value": 0.057645943383448466
+          },
+          "hit3": {
+            "num": 6650,
+            "den": 73830,
+            "value": 0.09007178653663822
+          }
+        },
+        "covered_subset": {
+          "T_cov": 12594,
+          "pattern_hit3": {
+            "num": 2826,
+            "den": 12594,
+            "value": 0.22439256788947118
+          },
+          "baseline_hit3": {
+            "num": 1003,
+            "den": 12594,
+            "value": 0.07964109893600127
+          }
+        }
+      },
+      "context_len": {
+        "0": 67469,
+        "1": 13343
+      },
+      "min_sup": 284,
+      "n_patterns": 285,
+      "by_length": {
+        "1": 218,
+        "2": 59,
+        "3": 8
+      },
+      "algos_checked": [
+        "gsp",
+        "prefixspan"
+      ],
+      "outputs_identical": true,
+      "mining_seconds_untimed_context": {
+        "gsp": 0.6488804000000528,
+        "prefixspan": 0.5686065999998391
+      },
+      "eval_seconds": 4.282906499998717,
+      "baseline_pages": [
+        "United_States",
+        "Europe",
+        "United_Kingdom",
+        "England"
+      ]
+    },
+    "0.001": {
+      "all": {
+        "T": 80812,
+        "baseline": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2876,
+            "den": 80812,
+            "value": 0.03558877394446369
+          },
+          "hit3": {
+            "num": 5261,
+            "den": 80812,
+            "value": 0.06510171756669801
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 39818,
+            "den": 80812,
+            "value": 0.4927238528931347
+          },
+          "hit1": {
+            "num": 7057,
+            "den": 80812,
+            "value": 0.08732613968222541
+          },
+          "hit3": {
+            "num": 11740,
+            "den": 80812,
+            "value": 0.1452754541404742
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 80812,
+            "den": 80812,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 8580,
+            "den": 80812,
+            "value": 0.10617235064099391
+          },
+          "hit3": {
+            "num": 14510,
+            "den": 80812,
+            "value": 0.17955254170172746
+          }
+        },
+        "covered_subset": {
+          "T_cov": 39818,
+          "pattern_hit3": {
+            "num": 11740,
+            "den": 39818,
+            "value": 0.29484152895675325
+          },
+          "baseline_hit3": {
+            "num": 2739,
+            "den": 39818,
+            "value": 0.06878798533326637
+          }
+        }
+      },
+      "forward": {
+        "T": 73830,
+        "baseline": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 2542,
+            "den": 73830,
+            "value": 0.03443044832723825
+          },
+          "hit3": {
+            "num": 4721,
+            "den": 73830,
+            "value": 0.06394419612623595
+          }
+        },
+        "pattern": {
+          "coverage": {
+            "num": 36833,
+            "den": 73830,
+            "value": 0.4988893403765407
+          },
+          "hit1": {
+            "num": 6729,
+            "den": 73830,
+            "value": 0.09114181227143438
+          },
+          "hit3": {
+            "num": 11183,
+            "den": 73830,
+            "value": 0.1514695923066504
+          }
+        },
+        "pattern+fill": {
+          "coverage": {
+            "num": 73830,
+            "den": 73830,
+            "value": 1.0
+          },
+          "hit1": {
+            "num": 8101,
+            "den": 73830,
+            "value": 0.10972504402004606
+          },
+          "hit3": {
+            "num": 13681,
+            "den": 73830,
+            "value": 0.18530407693349588
+          }
+        },
+        "covered_subset": {
+          "T_cov": 36833,
+          "pattern_hit3": {
+            "num": 11183,
+            "den": 36833,
+            "value": 0.30361360736296256
+          },
+          "baseline_hit3": {
+            "num": 2427,
+            "den": 36833,
+            "value": 0.06589199902261558
+          }
+        }
+      },
+      "context_len": {
+        "0": 40994,
+        "1": 36084,
+        "2": 3258,
+        "3": 476
+      },
+      "min_sup": 57,
+      "n_patterns": 2699,
+      "by_length": {
+        "1": 1185,
+        "2": 1135,
+        "3": 291,
+        "4": 88
+      },
+      "algos_checked": [
+        "gsp",
+        "prefixspan"
+      ],
+      "outputs_identical": true,
+      "mining_seconds_untimed_context": {
+        "gsp": 2.1607708999999886,
+        "prefixspan": 1.1224437000000762
+      },
+      "eval_seconds": 4.885332899999412,
+      "baseline_pages": [
+        "United_States",
+        "Europe",
+        "United_Kingdom",
+        "England"
+      ]
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"algo": "gsp", "n": 20000, "r": "0.01", "min_sup": 200, "max_len": 4, "mode": "time", "seconds": 0.22637609999947017, "peak_bytes": null, "n_patterns": 105, "by_length": {"1": 96, "2": 9}, "sha256": "f062538c28982323d5e550f37ede7d8f7c97636e666d24cf56a5180414c0552e", "stats": {"candidates": {"1": 4070, "2": 9216, "3": 2}, "frequent": {"1": 96, "2": 9, "3": 0}}}

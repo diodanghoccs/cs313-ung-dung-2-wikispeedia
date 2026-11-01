@@ -1,0 +1,98 @@
+{
+  "read_cost": [
+    {
+      "n": 5000,
+      "read_seconds_median": 0.010649499999999534,
+      "read_peak_mb": 1.3334417343139648
+    },
+    {
+      "n": 20000,
+      "read_seconds_median": 0.04415789999984554,
+      "read_peak_mb": 5.294638633728027
+    },
+    {
+      "n": 70968,
+      "read_seconds_median": 0.14929819999997562,
+      "read_peak_mb": 18.737879753112793
+    }
+  ],
+  "pairs_on_train": [
+    {
+      "pattern": "Asteroid → Viking",
+      "sup": 852,
+      "start_at_first": 852,
+      "end_at_last": 852,
+      "finished_paths": 852,
+      "reverse_sup": 0
+    },
+    {
+      "pattern": "Brain → Telephone",
+      "sup": 840,
+      "start_at_first": 837,
+      "end_at_last": 840,
+      "finished_paths": 840,
+      "reverse_sup": 0
+    },
+    {
+      "pattern": "Theatre → Zebra",
+      "sup": 718,
+      "start_at_first": 718,
+      "end_at_last": 718,
+      "finished_paths": 718,
+      "reverse_sup": 0
+    },
+    {
+      "pattern": "Pyramid → Bean",
+      "sup": 504,
+      "start_at_first": 504,
+      "end_at_last": 504,
+      "finished_paths": 504,
+      "reverse_sup": 0
+    },
+    {
+      "pattern": "North_America → United_States",
+      "sup": 694,
+      "start_at_first": 9,
+      "end_at_last": 60,
+      "finished_paths": 484,
+      "reverse_sup": 452
+    },
+    {
+      "pattern": "Animal → Mammal",
+      "sup": 643,
+      "start_at_first": 19,
+      "end_at_last": 69,
+      "finished_paths": 461,
+      "reverse_sup": 236
+    }
+  ],
+  "us_us_on_train": {
+    "sup": 1046,
+    "paths_with_back_visit_to_us": 853
+  },
+  "demo_paths": {
+    "F45426": {
+      "path": [
+        "Pride_and_Prejudice",
+        "English_language",
+        "15th_century",
+        "Lithuania",
+        "Judaism",
+        "Olive_oil",
+        "Cymbopogon",
+        "Soup"
+      ],
+      "back": "00000000"
+    },
+    "F47642": {
+      "path": [
+        "Super_Mario_Bros.",
+        "Japan",
+        "Nazi_Germany",
+        "World_War_II",
+        "Adolf_Hitler"
+      ],
+      "back": "00000"
+    }
+  }
+}

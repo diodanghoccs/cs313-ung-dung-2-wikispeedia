@@ -1,0 +1,1 @@
+{"algo": "prefixspan", "n": 20000, "r": "0.005", "min_sup": 100, "max_len": 4, "mode": "time", "seconds": 0.24279699999897275, "peak_bytes": null, "n_patterns": 289, "by_length": {"1": 222, "2": 58, "3": 9}, "sha256": "13672140b5e90af81bb9e9ef0d5e8d2931158e7fb55647deeafac53777fe0eca", "stats": {"projected_dbs": 289, "projected_entries": 67666}}

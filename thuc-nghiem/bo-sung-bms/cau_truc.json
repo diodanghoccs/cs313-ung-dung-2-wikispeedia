@@ -1,0 +1,68 @@
+{
+  "BMS1": {
+    "sequences": 59601,
+    "distinct_items": 497,
+    "visits": 149638,
+    "mean_len": 2.5106625727756247,
+    "max_len": 267,
+    "len1_sequences": 32934,
+    "multi_item_events": 0,
+    "seqs_len_ge2": 26667,
+    "strictly_increasing": 26667,
+    "strictly_increasing_pct": 100.0,
+    "nondecreasing": 26667,
+    "sequences_with_repeated_item": 0,
+    "expected_increasing_if_random_order": 6494.783368511781,
+    "increasing_by_len": {
+      "2": "10861/10861",
+      "3": "5378/5378",
+      "4": "3591/3591",
+      "5": "1972/1972",
+      "6+": "4865/4865"
+    }
+  },
+  "BMS2": {
+    "sequences": 77512,
+    "distinct_items": 3340,
+    "visits": 358278,
+    "mean_len": 4.622226235937661,
+    "max_len": 161,
+    "len1_sequences": 24893,
+    "multi_item_events": 0,
+    "seqs_len_ge2": 52619,
+    "strictly_increasing": 52619,
+    "strictly_increasing_pct": 100.0,
+    "nondecreasing": 52619,
+    "sequences_with_repeated_item": 0,
+    "expected_increasing_if_random_order": 8547.242378389194,
+    "increasing_by_len": {
+      "2": "13548/13548",
+      "3": "8826/8826",
+      "4": "6204/6204",
+      "5": "4573/4573",
+      "6+": "19468/19468"
+    }
+  },
+  "Wikispeedia": {
+    "sequences": 70968,
+    "distinct_items": 4179,
+    "visits": 470848,
+    "mean_len": 6.634652237628226,
+    "max_len": 435,
+    "len1_sequences": 0,
+    "multi_item_events": 0,
+    "seqs_len_ge2": 70968,
+    "strictly_increasing": 4145,
+    "strictly_increasing_pct": 5.840660579416075,
+    "nondecreasing": 4145,
+    "sequences_with_repeated_item": 15152,
+    "expected_increasing_if_random_order": 3624.7477654631857,
+    "increasing_by_len": {
+      "2": "2195/4021",
+      "3": "1112/6589",
+      "4": "515/11285",
+      "5": "269/13398",
+      "6+": "54/35675"
+    }
+  }
+}

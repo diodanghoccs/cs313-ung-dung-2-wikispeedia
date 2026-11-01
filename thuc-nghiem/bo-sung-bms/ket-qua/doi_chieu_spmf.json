@@ -1,0 +1,30 @@
+{
+  "BMS1 r=0.5%": {
+    "min_sup": 299,
+    "spmf": 201,
+    "gsp": 201,
+    "prefixspan": 201,
+    "identical": true
+  },
+  "BMS1 r=0.1%": {
+    "min_sup": 60,
+    "spmf": 3930,
+    "gsp": 3930,
+    "prefixspan": 3930,
+    "identical": true
+  },
+  "BMS2 r=0.5%": {
+    "min_sup": 388,
+    "spmf": 406,
+    "gsp": 406,
+    "prefixspan": 406,
+    "identical": true
+  },
+  "BMS2 r=0.1%": {
+    "min_sup": 78,
+    "spmf": 7852,
+    "gsp": 7852,
+    "prefixspan": 7852,
+    "identical": true
+  }
+}
